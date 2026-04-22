@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'usersession.dart';
+import 'cannotswitchmerchant.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -11,7 +12,6 @@ class EditProfilePage extends StatefulWidget {
 }
 
 class _EditProfilePageState extends State<EditProfilePage> {
-
   final TextEditingController surnameController = TextEditingController();
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
@@ -22,7 +22,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
   String? selectedWilaya;
   File? profileImage;
 
-  final List<String> statuses = ['Client', 'Merchant', 'Merchant & Client'];
+  // Statuses user can choose
+  final List<String> statuses = ['Client', 'Merchant & Client'];
 
   final List<String> wilayas = [
     '01 - Adrar', '02 - Chlef', '03 - Laghouat', '04 - Oum El Bouaghi',
@@ -45,7 +46,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
   @override
   void initState() {
     super.initState();
-    // Load existing session data into fields
     final session = UserSession();
     surnameController.text = session.surname;
     nameController.text = session.name;
@@ -54,16 +54,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
     phoneController.text = session.phone;
     profileImage = session.profileImage;
 
-    // Match wilaya from session
     if (session.wilaya.isNotEmpty && wilayas.contains(session.wilaya)) {
       selectedWilaya = session.wilaya;
     }
 
-    // Match status from session
-    final statusFromSession = session.isMerchant ? 'Merchant & Client' : 'Client';
-    if (statuses.contains(statusFromSession)) {
-      selectedStatus = statusFromSession;
-    }
+    // Show current status
+    selectedStatus = session.isMerchant ? 'Merchant & Client' : 'Client';
   }
 
   @override
@@ -86,6 +82,30 @@ class _EditProfilePageState extends State<EditProfilePage> {
     }
   }
 
+  /// Called when user changes status dropdown
+  void _onStatusChanged(String? newValue) {
+    if (newValue == null) return;
+
+    final session = UserSession();
+    final isCurrentlyMerchant = session.isMerchant;
+
+    // Trying to go from Client → Merchant & Client without registration
+    if (newValue == 'Merchant & Client' && !isCurrentlyMerchant) {
+      // Show the "cannot switch" page
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const CannotSwitchToMerchantPage(),
+        ),
+      );
+      // Don't update the selected status - stay as Client
+      return;
+    }
+
+    // Downgrade from Merchant & Client → Client: allowed
+    setState(() => selectedStatus = newValue);
+  }
+
   void _saveChanges() {
     final session = UserSession();
     session.surname = surnameController.text.trim();
@@ -95,8 +115,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
     session.phone = phoneController.text.trim();
     session.wilaya = selectedWilaya ?? session.wilaya;
     session.profileImage = profileImage;
-    session.isMerchant =
-        selectedStatus == 'Merchant' || selectedStatus == 'Merchant & Client';
+
+    // Only allow downgrade via this form; upgrade needs registration
+    if (selectedStatus == 'Client') {
+      session.isMerchant = false;
+    }
+    // Don't set isMerchant = true here; that's done via RegisterMerchantPage
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -118,7 +142,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-
               // Header
               const Row(
                 children: [
@@ -186,8 +209,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
               _buildField(label: 'Surname', controller: surnameController),
               _buildField(label: 'Name', controller: nameController),
-              _buildField(label: 'Email address', controller: emailController),
-              _buildField(label: 'Password', controller: passwordController, isPassword: true),
+              _buildField(
+                  label: 'Email address', controller: emailController),
+              _buildField(
+                  label: 'Password',
+                  controller: passwordController,
+                  isPassword: true),
 
               // Phone number
               const Text(
@@ -196,7 +223,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
               ),
               const SizedBox(height: 6),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                padding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                 decoration: BoxDecoration(
                   color: const Color.fromARGB(38, 208, 230, 165),
                   borderRadius: BorderRadius.circular(10),
@@ -205,7 +233,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   children: [
                     const Text(
                       '+213',
-                      style: TextStyle(fontSize: 15, color: Colors.black54),
+                      style:
+                      TextStyle(fontSize: 15, color: Colors.black54),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -223,7 +252,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
               const SizedBox(height: 16),
 
-              // Status dropdown
+              // Status dropdown with logic
               const Text(
                 'Status',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
@@ -233,8 +262,27 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 hint: 'Select status',
                 value: selectedStatus,
                 items: statuses,
-                onChanged: (val) => setState(() => selectedStatus = val),
+                onChanged: _onStatusChanged,
               ),
+
+              // Hint text for non-merchants
+              if (!UserSession().isMerchant) ...[
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    const Icon(Icons.info_outline,
+                        size: 13, color: Colors.grey),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        'To switch to Merchant & Client, you need to complete merchant registration.',
+                        style: TextStyle(
+                            fontSize: 11, color: Colors.grey.shade600),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
 
               const SizedBox(height: 16),
 
@@ -296,7 +344,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
         ),
         const SizedBox(height: 6),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+          padding:
+          const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
           decoration: BoxDecoration(
             color: const Color.fromARGB(38, 208, 230, 165),
             borderRadius: BorderRadius.circular(10),
@@ -332,7 +381,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
           hint: Text(hint),
           value: value,
           items: items
-              .map((item) => DropdownMenuItem(value: item, child: Text(item)))
+              .map(
+                  (item) => DropdownMenuItem(value: item, child: Text(item)))
               .toList(),
           onChanged: onChanged,
         ),
