@@ -1,8 +1,72 @@
-import 'package:flutter/material.dart';
 
-class PrivacyPage extends StatelessWidget {
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+class PrivacyPage extends StatefulWidget {
   const PrivacyPage({super.key});
 
+  @override
+  State<PrivacyPage> createState() => _PrivacyPageState();
+}
+
+class _PrivacyPageState extends State<PrivacyPage> {
+
+  static const String _base = 'http://10.0.2.2:8080';
+
+  // Texte de fallback si le backend est inaccessible
+  static const String _fallback =
+      'Our privacy policy is currently unavailable. '
+      'Please try again later or contact support.';
+
+  String? _content;
+  bool    _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchPrivacy();
+  }
+
+  // ── GET /api/static/privacy ───────────────────────────────────
+  Future<void> _fetchPrivacy() async {
+    setState(() { _isLoading = true; _error = null; });
+
+    try {
+      final resp = await http
+          .get(Uri.parse('$_base/api/static/privacy'))
+          .timeout(const Duration(seconds: 10));
+
+      if (!mounted) return;
+
+      if (resp.statusCode == 200) {
+        final body    = jsonDecode(resp.body) as Map<String, dynamic>;
+        final content = body['content']?.toString() ?? '';
+        setState(() {
+          _content   = content.isNotEmpty ? content : _fallback;
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _error     = 'Server error (${resp.statusCode})';
+          _content   = _fallback;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error     = 'Unable to load. Check your connection.';
+        _content   = _fallback;
+        _isLoading = false;
+      });
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  //  BUILD
+  // ══════════════════════════════════════════════════════════════
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -24,74 +88,85 @@ class PrivacyPage extends StatelessWidget {
         ),
         centerTitle: true,
       ),
-      body: const SingleChildScrollView(
-        padding: EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      body: _buildBody(),
+    );
+  }
 
-            // ── Section 1 ──────────────────────────────
-            Text(
-              '1. Types data we collect',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
-            ),
-            SizedBox(height: 10),
-            Text(
-              'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.\n\nDuis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident.',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.black87,
-                height: 1.6,
-              ),
-            ),
-            SizedBox(height: 24),
-
-            // ── Section 2 ──────────────────────────────
-            Text(
-              '2. Use of your personal data',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
-            ),
-            SizedBox(height: 10),
-            Text(
-              'Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae.\n\nNemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit.',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.black87,
-                height: 1.6,
-              ),
-            ),
-            SizedBox(height: 24),
-
-            // ── Section 3 ──────────────────────────────
-            Text(
-              '3. Disclosure of your personal data',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
-            ),
-            SizedBox(height: 10),
-            Text(
-              'At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident.\n\nEt harum quidem rerum facilis est et expedita distinctio. Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus id quod maxime placeat facere possimus, omnis voluptas assumenda est, omnis dolor repellendus.\n\nTemporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe eveniet ut et voluptates repudiandae sint et molestiae non recusandae.',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.black87,
-                height: 1.6,
-              ),
-            ),
-            SizedBox(height: 24),
-          ],
+  Widget _buildBody() {
+    // ── Loading ───────────────────────────────────────────────
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(
+          color: Color(0xFF72A843),
         ),
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+
+          // ── Bandeau erreur + retry ─────────────────────────
+          if (_error != null) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.orange.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.wifi_off_outlined,
+                      color: Colors.orange.shade700, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _error!,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.orange.shade800,
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: _fetchPrivacy,
+                    child: Text(
+                      'Retry',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.orange.shade800,
+                        fontWeight: FontWeight.bold,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // ── Contenu retourné par le backend ────────────────
+          // Le backend stocke le texte comme un bloc unique.
+          // On l'affiche directement avec le style cohérent.
+          Text(
+            _content ?? _fallback,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.black87,
+              height: 1.7,
+            ),
+          ),
+
+          const SizedBox(height: 30),
+        ],
       ),
     );
   }
 }
+

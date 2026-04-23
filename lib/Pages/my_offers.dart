@@ -411,7 +411,7 @@ class _MyOffersPageState extends State<MyOffersPage> {
                       ],
                     ),
                     const SizedBox(height: 6),
-                  GestureDetector(
+                    GestureDetector(
                       onTap: () {
                         Navigator.push(
                           context,
@@ -459,3 +459,4 @@ class _MyOffersPageState extends State<MyOffersPage> {
     );
   }
 }
+

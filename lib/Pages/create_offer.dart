@@ -4,13 +4,8 @@ import 'dart:io';
 import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'my_offers.dart';
 import 'offer_store.dart';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// IMPORTANT: Replace this with your real Google Maps API key.
-// Enable: "Places API" in your Google Cloud Console.
-// ─────────────────────────────────────────────────────────────────────────────
 const String _kGoogleApiKey = 'YOUR_GOOGLE_MAPS_API_KEY';
 
 class CreateOfferPage extends StatefulWidget {
@@ -525,7 +520,7 @@ class _CreateOfferPageState extends State<CreateOfferPage> {
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                                color: primaryColor.withOpacity(0.2)),
+                                color: primaryColor.withValues(alpha: 0.2)),
                           ),
                           constraints:
                           const BoxConstraints(maxHeight: 220),
@@ -551,7 +546,7 @@ class _CreateOfferPageState extends State<CreateOfferPage> {
                                         padding: const EdgeInsets.all(6),
                                         decoration: BoxDecoration(
                                           color: primaryColor
-                                              .withOpacity(0.1),
+                                              .withValues(alpha:0.1),
                                           shape: BoxShape.circle,
                                         ),
                                         child: Icon(

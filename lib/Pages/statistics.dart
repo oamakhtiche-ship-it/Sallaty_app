@@ -366,7 +366,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha:0.04),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -405,7 +405,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha:0.04),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -435,7 +435,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: const Color(0xFF72A843).withOpacity(0.1),
+              color: const Color(0xFF72A843).withValues(alpha:0.1),
               borderRadius: BorderRadius.circular(20),
             ),
             child: const Text(
@@ -464,7 +464,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha:0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -498,7 +498,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                     width: 28,
                     height: 10 + (70 * frac), // min 10px de hauteur pour visibilité
                     decoration: BoxDecoration(
-                      color: const Color(0xFF72A843).withOpacity(0.3 + frac * 0.7),
+                      color: const Color(0xFF72A843).withValues(alpha:0.3 + frac * 0.7),
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -524,7 +524,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFF72A843).withOpacity(0.1),
+        color: const Color(0xFF72A843).withValues(alpha:0.1),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
@@ -552,7 +552,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha:0.04),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -594,7 +594,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: const Color(0xFF72A843).withOpacity(0.1),
+              color: const Color(0xFF72A843).withValues(alpha:0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
@@ -626,7 +626,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.04),
+                color: Colors.black.withValues(alpha:0.04),
                 blurRadius: 6,
                 offset: const Offset(0, 2),
               ),

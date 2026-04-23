@@ -92,6 +92,37 @@ class ManageProfilePage extends StatelessWidget {
                 value: session.isMerchant ? 'Merchant & Client' : 'Client',
               ),
               _buildReadOnlyField(label: 'Wilaya', value: session.wilaya),
+
+              // ── Merchant-only fields ──────────────────────────────
+              if (session.isMerchant) ...[
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 12),
+                  child: Divider(color: Color(0xFFD0E6A5), thickness: 1.5),
+                ),
+                Row(
+                  children: const [
+                    Icon(Icons.store_outlined, size: 18, color: Color(0xFF72A843)),
+                    SizedBox(width: 6),
+                    Text(
+                      'Business Information',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF72A843),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                _buildReadOnlyField(
+                  label: 'Business Name',
+                  value: session.businessName,
+                ),
+                _buildReadOnlyField(
+                  label: 'Business Type',
+                  value: session.businessType,
+                ),
+              ],
             ],
           ),
         ),

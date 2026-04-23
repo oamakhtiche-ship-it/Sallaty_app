@@ -1,41 +1,3 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// conversation.dart — Sallaty Chat Room
-//
-// HOW THE BACKEND WEBSOCKET WORKS:
-//
-//  Protocol  : STOMP over raw WebSocket (NOT SockJS)
-//  Endpoint  : ws://HOST:8080/ws
-//
-//  ┌─ CONNECT ─────────────────────────────────────────────────────────────┐
-//  │  STOMP CONNECT frame with header:                                     │
-//  │    Authorization: Bearer <jwt>                                        │
-//  │  The server's JwtFilter verifies the token and sets the Principal.    │
-//  └───────────────────────────────────────────────────────────────────────┘
-//
-//  ┌─ SUBSCRIBE ───────────────────────────────────────────────────────────┐
-//  │  Destination: /topic/messages/<conversationId>                        │
-//  │  conversationId = "min(id1,id2):max(id1,id2)"  — built by the server │
-//  │  The server checks that the authenticated user is a participant.      │
-//  └───────────────────────────────────────────────────────────────────────┘
-//
-//  ┌─ SEND ────────────────────────────────────────────────────────────────┐
-//  │  Destination: /app/sendMessage                                        │
-//  │  Body (JSON): { receiverId: int, content: string }                   │
-//  │  senderId is taken from the JWT principal — never trust the client.   │
-//  └───────────────────────────────────────────────────────────────────────┘
-//
-//  ┌─ REST ────────────────────────────────────────────────────────────────┐
-//  │  GET /api/messages/conversation/{otherUserId}                         │
-//  │      → list of MessageDTO sorted by sentAt ascending                  │
-//  │  PUT /api/messages/read/{conversationId}                              │
-//  │      → mark all messages in the conversation as read                  │
-//  └───────────────────────────────────────────────────────────────────────┘
-//
-//  NOTE: The backend Message model only supports TEXT content.
-//        Image / audio support would require adding new endpoints on the
-//        server side.  The UI keeps those features but marks uploads as
-//        TODO until the backend is extended.
-// ─────────────────────────────────────────────────────────────────────────────
 
 import 'dart:async';
 import 'dart:convert';
@@ -131,15 +93,6 @@ class MessageApiService {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// STOMP WEBSOCKET SERVICE
-//
-// The backend uses Spring's STOMP message broker.
-// We use the `stomp_dart_client` package which speaks STOMP natively.
-//
-// pubspec.yaml dependency to add:
-//   stomp_dart_client: ^0.4.4   (or latest)
-// ─────────────────────────────────────────────────────────────────────────────
 class ChatStompService {
   StompClient? _client;
   bool _connected = false;
@@ -688,7 +641,7 @@ class _BubbleContent extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color:    Colors.black.withOpacity(0.07),
+            color:    Colors.black.withValues(alpha:0.07),
             blurRadius: 6,
             offset:   const Offset(0, 2),
           ),

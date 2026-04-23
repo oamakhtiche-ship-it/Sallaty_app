@@ -344,7 +344,7 @@ class _ConfirmPaymentPageState extends State<ConfirmPaymentPage> {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.6),
+                      color: Colors.white.withValues(alpha:0.6),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.lock_outline,
