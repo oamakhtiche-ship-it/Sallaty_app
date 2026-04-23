@@ -132,7 +132,7 @@ class _ViewOfferPageState extends State<ViewOfferPage>
               child: Container(
                 margin: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha:0.9),
                     shape: BoxShape.circle),
                 child: const Icon(Icons.arrow_back, color: Color(0xFF72A843)),
               ),
@@ -143,7 +143,7 @@ class _ViewOfferPageState extends State<ViewOfferPage>
                 child: Container(
                   margin: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
+                      color: Colors.white.withValues(alpha:0.9),
                       shape: BoxShape.circle),
                   padding: const EdgeInsets.all(8),
                   child: ScaleTransition(
@@ -175,7 +175,7 @@ class _ViewOfferPageState extends State<ViewOfferPage>
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [Colors.transparent,
-                          Colors.black.withOpacity(0.6)],
+                          Colors.black.withValues(alpha:0.6)],
                       ),
                     ),
                   ),
@@ -189,7 +189,7 @@ class _ViewOfferPageState extends State<ViewOfferPage>
                             colors: [Color(0xFF72A843), Color(0xFFA0CA09)]),
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [BoxShadow(
-                            color: Colors.black.withOpacity(0.25),
+                            color: Colors.black.withValues(alpha:0.25),
                             blurRadius: 10, offset: const Offset(0, 4))],
                       ),
                       child: Text('${widget.price} DA',
@@ -205,7 +205,7 @@ class _ViewOfferPageState extends State<ViewOfferPage>
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
-                          color: _statusColor().withOpacity(0.85),
+                          color: _statusColor().withValues(alpha:0.85),
                           borderRadius: BorderRadius.circular(12)),
                       child: Text(_statusLabel(),
                           style: const TextStyle(
@@ -245,7 +245,7 @@ class _ViewOfferPageState extends State<ViewOfferPage>
                       border: Border.all(
                           color: const Color(0xFFE8F5E3), width: 1.5),
                       boxShadow: [BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: Colors.black.withValues(alpha:0.05),
                           blurRadius: 8, offset: const Offset(0, 3))],
                     ),
                     child: Column(
@@ -348,7 +348,7 @@ class _ViewOfferPageState extends State<ViewOfferPage>
                           boxShadow: _canReserve
                               ? [BoxShadow(
                               color: const Color(0xFF72A843)
-                                  .withOpacity(0.35),
+                                  .withValues(alpha:0.35),
                               blurRadius: 12,
                               offset: const Offset(0, 4))]
                               : [],
@@ -469,8 +469,6 @@ class _ReservationSheetState extends State<_ReservationSheet> {
 
     setState(() => _isLoading = true);
 
-    // TODO: remplace ce délai par ton vrai appel API
-    // await http.post('/api/reservations', body: {...});
     await Future.delayed(const Duration(seconds: 1));
 
     if (!mounted) return;
@@ -951,7 +949,7 @@ class _InfoChip extends StatelessWidget {
     decoration: BoxDecoration(
         color: color.withValues(alpha:0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.3))),
+        border: Border.all(color: color.withValues(alpha:0.3))),
     child: Row(mainAxisSize: MainAxisSize.min, children: [
       Icon(icon, size: 14, color: color), const SizedBox(width: 4),
       Text(label, style: TextStyle(
@@ -973,11 +971,11 @@ class _StatCard extends StatelessWidget {
     decoration: BoxDecoration(
         color: color.withValues(alpha:0.07),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.2))),
+        border: Border.all(color: color.withValues(alpha:0.2))),
     child: Column(children: [
       Icon(icon, color: color, size: 22), const SizedBox(height: 6),
       Text(title, style: TextStyle(
-          fontSize: 10, color: color.withOpacity(0.7)),
+          fontSize: 10, color: color.withValues(alpha:0.7)),
           textAlign: TextAlign.center),
       const SizedBox(height: 2),
       Text(value, style: TextStyle(

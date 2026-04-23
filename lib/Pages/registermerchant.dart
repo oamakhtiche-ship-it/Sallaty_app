@@ -1,6 +1,8 @@
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'usersession.dart';
 
 class RegisterMerchantPage extends StatefulWidget {
   final VoidCallback? onSuccess;
@@ -16,12 +18,12 @@ class _RegisterMerchantPageState extends State<RegisterMerchantPage> {
 
   final _fullNameController = TextEditingController();
   final _shopNameController = TextEditingController();
-  final _phoneController = TextEditingController();
+  final _phoneController    = TextEditingController();
 
   String? _selectedType;
   String? _selectedWilaya;
-  File? _tradeRegisterFile;
-  bool _isLoading = false;
+  File?   _tradeRegisterFile;
+  bool    _isLoading = false;
 
   final List<String> _activityTypes = [
     'Restaurant', 'Café', 'Bakery', 'FastFood',
@@ -84,6 +86,19 @@ class _RegisterMerchantPageState extends State<RegisterMerchantPage> {
     }
 
     setState(() => _isLoading = true);
+
+    // ── Sauvegarder dans la session ──────────────────────────
+    final session        = UserSession();
+    session.businessName = _shopNameController.text.trim();
+    session.businessType = _selectedType!;
+    session.isMerchant   = true;
+    // Si l'utilisateur a aussi mis à jour son numéro de téléphone
+    if (_phoneController.text.trim().isNotEmpty) {
+      session.phone = _phoneController.text.trim();
+    }
+    await session.saveToPrefs();
+    // ────────────────────────────────────────────────────────
+
     await Future.delayed(const Duration(seconds: 2)); // simulate API call
     setState(() => _isLoading = false);
 
@@ -113,7 +128,7 @@ class _RegisterMerchantPageState extends State<RegisterMerchantPage> {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          'Register as a marchant',
+          'Register as a merchant',
           style: TextStyle(
             color: Color(0xFF72A843),
             fontWeight: FontWeight.bold,
@@ -193,19 +208,19 @@ class _RegisterMerchantPageState extends State<RegisterMerchantPage> {
               const SizedBox(height: 16),
 
               // ── Shop Name ──────────────────────────────
-              _buildLabel('Shop Name', Icons.storefront_outlined),
+              _buildLabel('Business Name', Icons.storefront_outlined),
               const SizedBox(height: 6),
               _buildTextFormField(
                 controller: _shopNameController,
-                hint: 'Enter your shop name',
+                hint: 'Enter your business name',
                 validator: (v) =>
-                v == null || v.isEmpty ? 'Shop name is required' : null,
+                v == null || v.isEmpty ? 'Business name is required' : null,
               ),
 
               const SizedBox(height: 16),
 
               // ── Type of Activity ──────────────────────────────
-              _buildLabel('Type of Activity', Icons.category_outlined),
+              _buildLabel('Business Type', Icons.category_outlined),
               const SizedBox(height: 6),
               _buildDropdownField(
                 hint: 'Select type',
@@ -267,8 +282,8 @@ class _RegisterMerchantPageState extends State<RegisterMerchantPage> {
                                 source: ImageSource.gallery,
                               );
                               if (image != null) {
-                                setState(() =>
-                                _tradeRegisterFile = File(image.path));
+                                setState(
+                                        () => _tradeRegisterFile = File(image.path));
                               }
                             },
                           ),
@@ -283,8 +298,8 @@ class _RegisterMerchantPageState extends State<RegisterMerchantPage> {
                                 source: ImageSource.camera,
                               );
                               if (image != null) {
-                                setState(() =>
-                                _tradeRegisterFile = File(image.path));
+                                setState(
+                                        () => _tradeRegisterFile = File(image.path));
                               }
                             },
                           ),
@@ -365,7 +380,7 @@ class _RegisterMerchantPageState extends State<RegisterMerchantPage> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF72A843),
                     disabledBackgroundColor:
-                    const Color(0xFF72A843).withOpacity(0.6),
+                    const Color(0xFF72A843).withValues(alpha: 0.6),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -398,7 +413,7 @@ class _RegisterMerchantPageState extends State<RegisterMerchantPage> {
     );
   }
 
-  // ── Helpers ──────────────────────────────
+  // ── Helpers ──────────────────────────────────────────────────
 
   Widget _buildLabel(String text, IconData icon) {
     return Row(
@@ -443,8 +458,7 @@ class _RegisterMerchantPageState extends State<RegisterMerchantPage> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide:
-          const BorderSide(color: Color(0xFF72A843), width: 1.5),
+          borderSide: const BorderSide(color: Color(0xFF72A843), width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
@@ -470,9 +484,8 @@ class _RegisterMerchantPageState extends State<RegisterMerchantPage> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: value != null
-              ? const Color(0xFF72A843)
-              : Colors.grey.shade300,
+          color:
+          value != null ? const Color(0xFF72A843) : Colors.grey.shade300,
           width: value != null ? 1.5 : 1,
         ),
       ),
@@ -480,13 +493,10 @@ class _RegisterMerchantPageState extends State<RegisterMerchantPage> {
         child: DropdownButton<String>(
           isExpanded: true,
           hint: Text(hint,
-              style:
-              TextStyle(color: Colors.grey.shade400, fontSize: 14)),
+              style: TextStyle(color: Colors.grey.shade400, fontSize: 14)),
           value: value,
           icon: Icon(Icons.keyboard_arrow_down,
-              color: value != null
-                  ? const Color(0xFF72A843)
-                  : Colors.grey),
+              color: value != null ? const Color(0xFF72A843) : Colors.grey),
           items: items
               .map((item) => DropdownMenuItem(
             value: item,

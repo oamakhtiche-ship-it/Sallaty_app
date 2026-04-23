@@ -1,3 +1,4 @@
+
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
@@ -13,7 +14,7 @@ class ApiConfig {
   static const String registerStep1  = '/api/auth/register/step1';
   static const String registerStep2  = '/api/auth/register/step2';
   static const String registerStep3  = '/api/auth/register/step3';
-  static const String resendOtp      = '/api/auth/resend-otp';       // ✅ sans /register/
+  static const String resendOtp      = '/api/auth/resend-otp';
 
   // ── Auth — form-urlencoded (@RequestParam) ──
   static const String login          = '/api/auth/login';
@@ -21,8 +22,26 @@ class ApiConfig {
   static const String resetPassword  = '/api/auth/reset-password';
 
   // ── User — Bearer token ──
-  static const String getProfile     = '/api/users/me';              // ✅ /users/me
-  static const String updateProfile  = '/api/users/update';          // ✅ /users/update
+  static const String getProfile     = '/api/users/me';
+  static const String updateProfile  = '/api/users/update';
+
+  // ── Password change depuis le profil (connecté) ──
+  // POST /api/auth/change-password/request  → envoie OTP à l'email/phone du user
+  //   Body (form-urlencoded): — (le backend lit le user depuis le JWT)
+  //   200: { "success": true, "message": "OTP envoyé" }
+  static const String changePasswordRequest = '/api/auth/change-password/request';
+
+  // POST /api/auth/change-password/confirm  → vérifie OTP + applique le nouveau mdp
+  //   Body (form-urlencoded): otpCode + newPassword + confirm
+  //   200: { "success": true, "message": "Mot de passe changé !" }
+  static const String changePasswordConfirm = '/api/auth/change-password/confirm';
+
+  // ── Offer likes ──
+  // POST   /api/offres/{offerId}/like   → ajoute un j'adore
+  // DELETE /api/offres/{offerId}/like   → retire le j'adore
+  // GET    /api/offres/{offerId}/likes  → { "likesCount": 12, "isLikedByMe": true }
+  static String offerLike(String offerId)  => '/api/offres/$offerId/like';
+  static String offerLikes(String offerId) => '/api/offres/$offerId/likes';
 }
 
 /// ─────────────────────────────────────────────
@@ -44,9 +63,16 @@ class ApiService {
   ApiService._();
 
   // ── form-urlencoded — register + login + forgot + reset ──
-  // http.dart ajoute Content-Type automatiquement
   static Map<String, String> _formHeaders() {
     return {'ngrok-skip-browser-warning': 'true'};
+  }
+
+  // ── form-urlencoded + Bearer token ──
+  static Map<String, String> _formHeadersAuth() {
+    return {
+      'ngrok-skip-browser-warning': 'true',
+      'Authorization': 'Bearer ${UserSession().token}',
+    };
   }
 
   // ── JSON avec Bearer token — getProfile ──
@@ -131,11 +157,7 @@ class ApiService {
   //  3. REGISTER STEP 3  →  POST /api/auth/register/step3
   //
   //  Body (form-urlencoded): userId + name + surname
-  //  200: {
-  //    "success": true, "accessToken": "eyJ...", "refreshToken": "eyJ...",
-  //    "userId": 42, "user": { "id": 42, "name": "Alice", ... }
-  //  }
-  //  ✅ hydrateFromJson → token stocké → isLoggedIn = true → HomePage
+  //  200: { "success": true, "accessToken": "eyJ...", "userId": 42, ... }
   // ──────────────────────────────────────────────────────────────
   static Future<ApiResponse<String>> registerStep3({
     required int    userId,
@@ -155,7 +177,7 @@ class ApiService {
 
       final body = _decode(res);
       if (res.statusCode == 200) {
-        await UserSession().hydrateFromJson(body); // ✅ stocke accessToken
+        await UserSession().hydrateFromJson(body);
         return ApiResponse.ok(body['message']?.toString() ?? 'Done');
       }
       return ApiResponse.fail(body['message']?.toString() ?? 'Failed');
@@ -193,10 +215,8 @@ class ApiService {
   // ──────────────────────────────────────────────────────────────
   //  5. LOGIN  →  POST /api/auth/login
   //
-  //  ✅ form-urlencoded — backend @RequestParam
-  //  Body: contact + password   ← clé 'contact' pas 'email'
-  //  200: { "accessToken": "eyJ...", "refreshToken": "...", "user": {...} }
-  //  ✅ hydrateFromJson → token stocké → isLoggedIn = true
+  //  Body (form-urlencoded): contact + password
+  //  200: { "accessToken": "eyJ...", "user": {...} }
   // ──────────────────────────────────────────────────────────────
   static Future<ApiResponse<Map<String, dynamic>>> login({
     required String email,
@@ -205,9 +225,9 @@ class ApiService {
     try {
       final res = await http.post(
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.login}'),
-        headers: _formHeaders(),          // ✅ form pas JSON
+        headers: _formHeaders(),
         body: <String, String>{
-          'contact' : email,              // ✅ 'contact' pas 'email'
+          'contact' : email,
           'password': password,
         },
       ).timeout(const Duration(seconds: 15));
@@ -225,8 +245,7 @@ class ApiService {
   // ──────────────────────────────────────────────────────────────
   //  6. FORGOT PASSWORD  →  POST /api/auth/forgot-password
   //
-  //  ✅ form-urlencoded — backend @RequestParam String contact
-  //  Body: contact = "alice@gmail.com" ou "0555000000"
+  //  Body (form-urlencoded): contact
   //  200: { "success": true, "message": "OTP envoyé à ..." }
   // ──────────────────────────────────────────────────────────────
   static Future<ApiResponse<String>> forgotPassword({
@@ -237,7 +256,7 @@ class ApiService {
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.forgotPassword}'),
         headers: _formHeaders(),
         body: <String, String>{
-          'contact': contact,             // ✅ même clé pour email et phone
+          'contact': contact,
         },
       ).timeout(const Duration(seconds: 15));
 
@@ -253,10 +272,8 @@ class ApiService {
   // ──────────────────────────────────────────────────────────────
   //  7. RESET PASSWORD  →  POST /api/auth/reset-password
   //
-  //  ✅ form-urlencoded — backend @RequestParam
-  //  Body: contact + otpCode + newPassword + confirm
+  //  Body (form-urlencoded): contact + otpCode + newPassword + confirm
   //  200: { "success": true, "message": "Password réinitialisé !" }
-  //  Backend vérifie l'OTP + reset en une seule étape ✅
   // ──────────────────────────────────────────────────────────────
   static Future<ApiResponse<String>> resetPassword({
     required String contact,
@@ -288,7 +305,6 @@ class ApiService {
   // ──────────────────────────────────────────────────────────────
   //  8. REFRESH PROFILE  →  GET /api/users/me
   //
-  //  Appelé au démarrage si déjà connecté (main.dart)
   //  Header: Authorization: Bearer <token>
   //  200: { "success": true, "userId": 42, "firstName": "...", ... }
   //  401: token expiré → logout automatique
@@ -313,8 +329,8 @@ class ApiService {
   // ──────────────────────────────────────────────────────────────
   //  9. UPDATE PROFILE  →  PUT /api/users/update
   //
-  //  ✅ form-urlencoded + Bearer token
-  //  Body: firstName + surname + contact (optionnels)
+  //  Body (form-urlencoded) + Bearer token
+  //  Fields optionnels: firstName + surname + contact
   //  200: { "success": true, "message": "Profil mis à jour !" }
   // ──────────────────────────────────────────────────────────────
   static Future<ApiResponse<String>> updateProfile({
@@ -343,6 +359,137 @@ class ApiService {
         return ApiResponse.ok(resBody['message']?.toString() ?? 'Profile updated');
       }
       return ApiResponse.fail(resBody['message']?.toString() ?? 'Update failed');
+    } on SocketException { return ApiResponse.fail('No internet connection'); }
+    catch (e)            { return ApiResponse.fail('Error: $e'); }
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  //  10. CHANGE PASSWORD — ÉTAPE 1 : Demander l'OTP
+  //      POST /api/auth/change-password/request
+  //
+  //  Utilisé depuis EditProfilePage quand l'utilisateur veut
+  //  changer son mot de passe alors qu'il EST connecté.
+  //  Le backend identifie l'utilisateur via le JWT et envoie
+  //  un OTP à son email / téléphone enregistré.
+  //
+  //  Header: Authorization: Bearer <token>
+  //  200: { "success": true, "message": "OTP envoyé à alice@..." }
+  // ──────────────────────────────────────────────────────────────
+  static Future<ApiResponse<String>> changePasswordRequest() async {
+    try {
+      final res = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.changePasswordRequest}'),
+        headers: _formHeadersAuth(),
+      ).timeout(const Duration(seconds: 15));
+
+      final body = _decode(res);
+      if (res.statusCode == 200) {
+        return ApiResponse.ok(body['message']?.toString() ?? 'OTP sent');
+      }
+      return ApiResponse.fail(body['message']?.toString() ?? 'Request failed');
+    } on SocketException { return ApiResponse.fail('No internet connection'); }
+    catch (e)            { return ApiResponse.fail('Error: $e'); }
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  //  11. CHANGE PASSWORD — ÉTAPE 2 : Confirmer avec OTP
+  //      POST /api/auth/change-password/confirm
+  //
+  //  Body (form-urlencoded): otpCode + newPassword + confirm
+  //  Header: Authorization: Bearer <token>
+  //  200: { "success": true, "message": "Mot de passe changé !" }
+  //
+  //  ⚠️  Après succès : mettre à jour UserSession().password
+  //      et appeler UserSession().saveToPrefs()
+  // ──────────────────────────────────────────────────────────────
+  static Future<ApiResponse<String>> changePasswordConfirm({
+    required String otpCode,
+    required String newPassword,
+    required String confirm,
+  }) async {
+    try {
+      final res = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.changePasswordConfirm}'),
+        headers: _formHeadersAuth(),
+        body: <String, String>{
+          'otpCode'    : otpCode,
+          'newPassword': newPassword,
+          'confirm'    : confirm,
+        },
+      ).timeout(const Duration(seconds: 15));
+
+      final body = _decode(res);
+      if (res.statusCode == 200) {
+        return ApiResponse.ok(body['message']?.toString() ?? 'Password changed');
+      }
+      return ApiResponse.fail(body['message']?.toString() ?? 'Failed');
+    } on SocketException { return ApiResponse.fail('No internet connection'); }
+    catch (e)            { return ApiResponse.fail('Error: $e'); }
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  //  12. OFFER LIKES — charger le compteur + état utilisateur
+  //      GET /api/offres/{offerId}/likes
+  //
+  //  Header: Authorization: Bearer <token>
+  //  200: { "likesCount": 12, "isLikedByMe": true }
+  // ──────────────────────────────────────────────────────────────
+  static Future<Map<String, dynamic>?> getOfferLikes(String offerId) async {
+    try {
+      final res = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.offerLikes(offerId)}'),
+        headers: _jsonHeaders(withAuth: true),
+      ).timeout(const Duration(seconds: 10));
+
+      if (res.statusCode == 200) return _decode(res);
+      return null;
+    } catch (_) { return null; }
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  //  13. OFFER LIKES — ajouter un j'adore
+  //      POST /api/offres/{offerId}/like
+  //
+  //  Header: Authorization: Bearer <token>
+  //  200: { "success": true, "likesCount": 13 }
+  // ──────────────────────────────────────────────────────────────
+  static Future<ApiResponse<int>> likeOffer(String offerId) async {
+    try {
+      final res = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.offerLike(offerId)}'),
+        headers: _formHeadersAuth(),
+      ).timeout(const Duration(seconds: 10));
+
+      final body = _decode(res);
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        final count = (body['likesCount'] as num?)?.toInt() ?? 0;
+        return ApiResponse.ok(count);
+      }
+      return ApiResponse.fail(body['message']?.toString() ?? 'Like failed');
+    } on SocketException { return ApiResponse.fail('No internet connection'); }
+    catch (e)            { return ApiResponse.fail('Error: $e'); }
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  //  14. OFFER LIKES — retirer un j'adore
+  //      DELETE /api/offres/{offerId}/like
+  //
+  //  Header: Authorization: Bearer <token>
+  //  200: { "success": true, "likesCount": 11 }
+  // ──────────────────────────────────────────────────────────────
+  static Future<ApiResponse<int>> unlikeOffer(String offerId) async {
+    try {
+      final res = await http.delete(
+        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.offerLike(offerId)}'),
+        headers: _formHeadersAuth(),
+      ).timeout(const Duration(seconds: 10));
+
+      final body = _decode(res);
+      if (res.statusCode == 200) {
+        final count = (body['likesCount'] as num?)?.toInt() ?? 0;
+        return ApiResponse.ok(count);
+      }
+      return ApiResponse.fail(body['message']?.toString() ?? 'Unlike failed');
     } on SocketException { return ApiResponse.fail('No internet connection'); }
     catch (e)            { return ApiResponse.fail('Error: $e'); }
   }

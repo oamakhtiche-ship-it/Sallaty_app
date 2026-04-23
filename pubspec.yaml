@@ -29,6 +29,7 @@ dependencies:
   shared_preferences: ^2.3.0
   dio: ^5.7.0
   web_socket_channel: ^3.0.1
+  cached_network_image: ^3.3.1
 
   # Auth
   google_sign_in: ^6.2.1

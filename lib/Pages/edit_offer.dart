@@ -337,8 +337,8 @@ class _EditOfferPageState extends State<EditOfferPage> {
                         controller: _priceController,
                         keyboardType: TextInputType.number,
                         onChanged: (_) {
-                          if (_showError) setState(() {});
-                          else setState(() {});
+                          if (_showError) {setState(() {});}
+                          else {setState(() {});}
                         },
                         style: const TextStyle(
                           fontFamily: 'Poppins',
