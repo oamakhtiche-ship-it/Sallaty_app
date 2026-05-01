@@ -1,0 +1,55 @@
+name: saallatyy
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.8
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  fl_chart: ^0.68.0
+  curved_navigation_bar: ^1.0.6
+  dotted_border: ^2.1.0
+  image_picker: ^1.0.4
+  google_fonts: ^6.1.0
+  dio: ^5.4.0
+  intl: ^0.18.1
+  web_socket_channel: ^2.4.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+    # ── HTTP & session ──────────────────────────────────────────────────────────
+  http: ^1.2.1
+  shared_preferences: ^2.2.3
+
+flutter:
+  uses-material-design: true
+
+  fonts:
+    - family: Poppins
+      fonts:
+        - asset: fonts/Poppins-Medium.ttf
+          weight: 500
+    - family: Inter
+      fonts:
+        - asset: fonts/Inter_18pt-Regular.ttf
+          weight: 400
+        - asset: fonts/Inter_18pt-SemiBold.ttf
+          weight: 600
+
+  assets:
+    - assets/forgot_password.png
+    - assets/enter_mobile.png
+    - assets/reset_password.png
+    - assets/myoffers.png
+    - assets/bank_card.png
+    - assets/noorder.png
+    - assets/logo.png
