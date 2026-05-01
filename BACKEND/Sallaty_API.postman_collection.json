@@ -1,0 +1,3169 @@
+
+{
+  "info": {
+    "name": "Sallaty API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "BASE",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "CLIENT_TOKEN",
+      "value": ""
+    },
+    {
+      "key": "MARCHAND_TOKEN",
+      "value": ""
+    },
+    {
+      "key": "ADMIN_TOKEN",
+      "value": ""
+    },
+    {
+      "key": "OFFRE_ID",
+      "value": "1"
+    },
+    {
+      "key": "ORDER_ID",
+      "value": "1"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. AUTH",
+      "item": [
+        {
+          "name": "Login Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "var j = pm.response.json();",
+                  "if(j.token) pm.collectionVariables.set('ADMIN_TOKEN', j.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"contact\":\"admin@sallaty.com\",\"passeWord\":\"admin123\"}"
+            },
+            "url": {
+              "raw": "{{BASE}}/api/auth/login",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Login Marchand",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "var j = pm.response.json();",
+                  "if(j.token) pm.collectionVariables.set('MARCHAND_TOKEN', j.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"contact\":\"marchand@test.com\",\"passeWord\":\"password123\"}"
+            },
+            "url": {
+              "raw": "{{BASE}}/api/auth/login",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Login Client",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "var j = pm.response.json();",
+                  "if(j.token) pm.collectionVariables.set('CLIENT_TOKEN', j.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"contact\":\"client@test.com\",\"passeWord\":\"password123\"}"
+            },
+            "url": {
+              "raw": "{{BASE}}/api/auth/login",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Register New Client",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"firstName\":\"Nouveau\",\"surname\":\"User\",\"contact\":\"nouveau@test.com\",\"passeWord\":\"password123\"}"
+            },
+            "url": {
+              "raw": "{{BASE}}/api/auth/register",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. USERS",
+      "item": [
+        {
+          "name": "Get Balance",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{CLIENT_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/users/balance",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "balance"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Top Up Balance",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{CLIENT_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/users/balance/topup?amount=500",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "balance",
+                "topup"
+              ],
+              "query": [
+                {
+                  "key": "amount",
+                  "value": "500"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{CLIENT_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/users/update?firstName=NouveauNom&surname=NouveauSurname",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "update"
+              ],
+              "query": [
+                {
+                  "key": "firstName",
+                  "value": "NouveauNom"
+                },
+                {
+                  "key": "surname",
+                  "value": "NouveauSurname"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Device Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{CLIENT_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/users/device-token?token=firebase_abc123",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "device-token"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "firebase_abc123"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin Block User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/users/block/3",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "block",
+                "3"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin Unblock User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/users/unblock/3",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "unblock",
+                "3"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{CLIENT_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/users/logout",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "logout"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. CATEGORIES",
+      "item": [
+        {
+          "name": "Get All Categories",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE}}/api/categories",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "categories"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin Create Category",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\":\"Sushi\",\"icon\":\"sushi\",\"description\":\"Cuisine japonaise\"}"
+            },
+            "url": {
+              "raw": "{{BASE}}/api/categories/create",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "categories",
+                "create"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin Delete Category",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/categories/delete/14",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "categories",
+                "delete",
+                "14"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. OFFRES",
+      "item": [
+        {
+          "name": "Get Active Offres",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE}}/api/offres/active",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "offres",
+                "active"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Available Offres",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE}}/api/offres/available",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "offres",
+                "available"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Recent Offres",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE}}/api/offres/recent",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "offres",
+                "recent"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Discount Offres",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE}}/api/offres/discount",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "offres",
+                "discount"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Most Reserved",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE}}/api/offres/most-reserved",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "offres",
+                "most-reserved"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Offres by Wilaya",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE}}/api/offres/wilaya/Alger",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "offres",
+                "wilaya",
+                "Alger"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Offres by Category",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE}}/api/offres/category/PIZZERIA",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "offres",
+                "category",
+                "PIZZERIA"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Offres by Price",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE}}/api/offres/price?minPrice=100&maxPrice=800",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "offres",
+                "price"
+              ],
+              "query": [
+                {
+                  "key": "minPrice",
+                  "value": "100"
+                },
+                {
+                  "key": "maxPrice",
+                  "value": "800"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search Offres",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE}}/api/offres/search?title=pizza",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "offres",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "title",
+                  "value": "pizza"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Offre by Id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE}}/api/offres/{{OFFRE_ID}}",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "offres",
+                "{{OFFRE_ID}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Offres by Marchand",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE}}/api/offres/marchand/2",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "offres",
+                "marchand",
+                "2"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Marchand Create Offre",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "var j = pm.response.json();",
+                  "if(j.id) pm.collectionVariables.set('OFFRE_ID', j.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{MARCHAND_TOKEN}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "foodtype",
+                  "value": "PIZZERIA"
+                },
+                {
+                  "key": "title",
+                  "value": "Pizza Test Postman"
+                },
+                {
+                  "key": "description",
+                  "value": "Bonne pizza test"
+                },
+                {
+                  "key": "price",
+                  "value": "500"
+                },
+                {
+                  "key": "quantity",
+                  "value": "10"
+                },
+                {
+                  "key": "wilaya",
+                  "value": "Alger"
+                },
+                {
+                  "key": "status",
+                  "value": "ACTIVE"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{BASE}}/api/offres/create",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "offres",
+                "create"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Marchand Update Offre",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{MARCHAND_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/offres/update/{{OFFRE_ID}}?title=Pizza%20Updated&price=400",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "offres",
+                "update",
+                "{{OFFRE_ID}}"
+              ],
+              "query": [
+                {
+                  "key": "title",
+                  "value": "Pizza Updated"
+                },
+                {
+                  "key": "price",
+                  "value": "400"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Marchand Discount Offre",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{MARCHAND_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/offres/discount/{{OFFRE_ID}}?discountPrice=350",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "offres",
+                "discount",
+                "{{OFFRE_ID}}"
+              ],
+              "query": [
+                {
+                  "key": "discountPrice",
+                  "value": "350"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Marchand Archive Offre",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{MARCHAND_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/offres/archive/{{OFFRE_ID}}",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "offres",
+                "archive",
+                "{{OFFRE_ID}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin Get All Offres",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/offres/all",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "offres",
+                "all"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin Block Offre",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/offres/block/{{OFFRE_ID}}",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "offres",
+                "block",
+                "{{OFFRE_ID}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin Unblock Offre",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/offres/unblock/{{OFFRE_ID}}",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "offres",
+                "unblock",
+                "{{OFFRE_ID}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. SEARCH",
+      "item": [
+        {
+          "name": "Search global",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE}}/api/search?q=pizza",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "pizza"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search avec wilaya",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE}}/api/search?q=pizza&wilaya=Alger",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "pizza"
+                },
+                {
+                  "key": "wilaya",
+                  "value": "Alger"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search avec prix",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE}}/api/search?minPrice=100&maxPrice=800",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "minPrice",
+                  "value": "100"
+                },
+                {
+                  "key": "maxPrice",
+                  "value": "800"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search avec GPS",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE}}/api/search?lat=36.7&lng=3.0&distance=10",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "lat",
+                  "value": "36.7"
+                },
+                {
+                  "key": "lng",
+                  "value": "3.0"
+                },
+                {
+                  "key": "distance",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search avec category",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE}}/api/search?categoryType=PIZZERIA",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "categoryType",
+                  "value": "PIZZERIA"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. MARCHAND",
+      "item": [
+        {
+          "name": "Get Marchand by Id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE}}/api/marchand/get/2",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "marchand",
+                "get",
+                "2"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Total Favoris",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE}}/api/marchand/total-favoris/2",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "marchand",
+                "total-favoris",
+                "2"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Marchand Statistics",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{MARCHAND_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/marchand/statistics",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "marchand",
+                "statistics"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin Get Pending",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/marchand/pending",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "marchand",
+                "pending"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin Get Verified",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/marchand/verified",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "marchand",
+                "verified"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin Get Cancelled",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/marchand/cancelled",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "marchand",
+                "cancelled"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin Verify Marchand",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/marchand/verify/2",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "marchand",
+                "verify",
+                "2"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin Cancel Marchand",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/marchand/cancel/2",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "marchand",
+                "cancel",
+                "2"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin Reactivate Marchand",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/marchand/reactivate/2",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "marchand",
+                "reactivate",
+                "2"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. ORDRES",
+      "item": [
+        {
+          "name": "Client Create Order",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "var j = pm.response.json();",
+                  "if(j.id) pm.collectionVariables.set('ORDER_ID', j.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{CLIENT_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/ordres/create?offreId={{OFFRE_ID}}&quantity=2",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "ordres",
+                "create"
+              ],
+              "query": [
+                {
+                  "key": "offreId",
+                  "value": "{{OFFRE_ID}}"
+                },
+                {
+                  "key": "quantity",
+                  "value": "2"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Client Get My Orders",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{CLIENT_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/ordres/my-orders",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "ordres",
+                "my-orders"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Marchand Get Orders",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{MARCHAND_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/ordres/marchand-orders",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "ordres",
+                "marchand-orders"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin Confirm Order",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/ordres/status/{{ORDER_ID}}?status=CONFIRMED",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "ordres",
+                "status",
+                "{{ORDER_ID}}"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "CONFIRMED"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin Complete Order",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/ordres/status/{{ORDER_ID}}?status=COMPLETED",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "ordres",
+                "status",
+                "{{ORDER_ID}}"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "COMPLETED"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Client Cancel Order",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{CLIENT_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/ordres/cancel/{{ORDER_ID}}",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "ordres",
+                "cancel",
+                "{{ORDER_ID}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. PAYMENTS",
+      "item": [
+        {
+          "name": "Client Pay",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{CLIENT_TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"ordreId\":{{ORDER_ID}},\"method\":\"BALANCE\"}"
+            },
+            "url": {
+              "raw": "{{BASE}}/api/payments/pay",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "pay"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Payment by Ordre",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE}}/api/payments/ordre/{{ORDER_ID}}",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "ordre",
+                "{{ORDER_ID}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. FAVORIS",
+      "item": [
+        {
+          "name": "Add Favori",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{CLIENT_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/favoris/add?offreId={{OFFRE_ID}}",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "favoris",
+                "add"
+              ],
+              "query": [
+                {
+                  "key": "offreId",
+                  "value": "{{OFFRE_ID}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get My Favoris",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{CLIENT_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/favoris/my",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "favoris",
+                "my"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Count Favoris",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE}}/api/favoris/count/{{OFFRE_ID}}",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "favoris",
+                "count",
+                "{{OFFRE_ID}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Remove Favori",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{CLIENT_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/favoris/remove?offreId={{OFFRE_ID}}",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "favoris",
+                "remove"
+              ],
+              "query": [
+                {
+                  "key": "offreId",
+                  "value": "{{OFFRE_ID}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. SUBSCRIBE",
+      "item": [
+        {
+          "name": "Subscribe to Marchand",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{CLIENT_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/subscribe/2",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "subscribe",
+                "2"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Subscribers",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE}}/api/subscribe/2/subscribers",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "subscribe",
+                "2",
+                "subscribers"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Subscribe Count",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE}}/api/subscribe/2/count",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "subscribe",
+                "2",
+                "count"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Unsubscribe",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{CLIENT_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/subscribe/2",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "subscribe",
+                "2"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "11. NOTIFICATIONS",
+      "item": [
+        {
+          "name": "Get My Notifications",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{CLIENT_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/notifications",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "notifications"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mark Read",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{CLIENT_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/notifications/read/1",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "read",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin Broadcast ALL",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/notifications/broadcast?title=Test&message=Bonjour&recipients=ALL",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "broadcast"
+              ],
+              "query": [
+                {
+                  "key": "title",
+                  "value": "Test"
+                },
+                {
+                  "key": "message",
+                  "value": "Bonjour"
+                },
+                {
+                  "key": "recipients",
+                  "value": "ALL"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin Broadcast CLIENTS",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/notifications/broadcast?title=Test&message=Bonjour&recipients=CLIENTS",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "broadcast"
+              ],
+              "query": [
+                {
+                  "key": "title",
+                  "value": "Test"
+                },
+                {
+                  "key": "message",
+                  "value": "Bonjour"
+                },
+                {
+                  "key": "recipients",
+                  "value": "CLIENTS"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin Broadcast MERCHANTS",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/notifications/broadcast?title=Test&message=Bonjour&recipients=MERCHANTS",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "broadcast"
+              ],
+              "query": [
+                {
+                  "key": "title",
+                  "value": "Test"
+                },
+                {
+                  "key": "message",
+                  "value": "Bonjour"
+                },
+                {
+                  "key": "recipients",
+                  "value": "MERCHANTS"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin Support Notification",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/notifications/support/3?title=Support&message=Aide",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "support",
+                "3"
+              ],
+              "query": [
+                {
+                  "key": "title",
+                  "value": "Support"
+                },
+                {
+                  "key": "message",
+                  "value": "Aide"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "12. SETTINGS",
+      "item": [
+        {
+          "name": "Get Settings",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{CLIENT_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/settings/3",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "settings",
+                "3"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Language",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{CLIENT_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/settings/3/language/AR",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "settings",
+                "3",
+                "language",
+                "AR"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Toggle Sound",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{CLIENT_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/settings/3/toggle/sound",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "settings",
+                "3",
+                "toggle",
+                "sound"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Account",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{CLIENT_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/settings/3/account",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "settings",
+                "3",
+                "account"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "13. ADMIN PANEL",
+      "item": [
+        {
+          "name": "Dashboard",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/admin/dashboard",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "dashboard"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get All Admins",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/admin/admins",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "admins"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/admin/admins/create?firstName=New&lastName=Admin&email=newadmin@test.com&password=pass123&role=NORMAL_ADMIN",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "admins",
+                "create"
+              ],
+              "query": [
+                {
+                  "key": "firstName",
+                  "value": "New"
+                },
+                {
+                  "key": "lastName",
+                  "value": "Admin"
+                },
+                {
+                  "key": "email",
+                  "value": "newadmin@test.com"
+                },
+                {
+                  "key": "password",
+                  "value": "pass123"
+                },
+                {
+                  "key": "role",
+                  "value": "NORMAL_ADMIN"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get All Users",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/admin/users",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get User Profile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/admin/users/3",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users",
+                "3"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get User Orders",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/admin/users/3/orders",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users",
+                "3",
+                "orders"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get All Merchants",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/admin/merchants",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "merchants"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Merchant Profile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/admin/merchants/2",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "merchants",
+                "2"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Merchant Offers",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/admin/merchants/2/offers",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "merchants",
+                "2",
+                "offers"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get All Offers",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/admin/offers",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "offers"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get All Reservations",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/admin/reservations",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "reservations"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "14. STATIC",
+      "item": [
+        {
+          "name": "Get Privacy Policy",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE}}/api/static/privacy",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "static",
+                "privacy"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get About",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE}}/api/static/about",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "static",
+                "about"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Terms",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE}}/api/static/terms",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "static",
+                "terms"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Help",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE}}/api/static/help",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "static",
+                "help"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin Update Privacy",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ADMIN_TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"content\":\"Nouvelle politique de confidentialité...\"}"
+            },
+            "url": {
+              "raw": "{{BASE}}/api/static/privacy",
+              "host": [
+                "{{BASE}}"
+              ],
+              "path": [
+                "api",
+                "static",
+                "privacy"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
