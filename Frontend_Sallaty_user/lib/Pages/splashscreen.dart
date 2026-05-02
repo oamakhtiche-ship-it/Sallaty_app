@@ -153,7 +153,7 @@ class _SplashScreenState extends State<SplashScreen>
                 child: SlideTransition(
                   position: _vegsSlideBottom,
                   child: Image.asset(
-                    'assets/images/splashscreeen.png',
+                    'assets/images/Splashscreen.jpg',
                     width: size.width,
                     height: size.height,
                     fit: BoxFit.fill,
@@ -188,7 +188,7 @@ class _SplashScreenState extends State<SplashScreen>
                       child: Text(
                         'Sallaty',
                         style: TextStyle(
-                          fontFamily: 'Georgia',
+                          fontFamily: 'Poppins',
                           fontSize: 38,
                           fontStyle: FontStyle.italic,
                           fontWeight: FontWeight.w400,
