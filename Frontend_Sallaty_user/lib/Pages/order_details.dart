@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'order_item.dart';
 import 'orderstore.dart';
 import 'payment_sheet.dart';
+import 'network_image_widget.dart';
 
 const _kPrimary500 = Color(0xFF72A843);
 const _kBackground = Color(0xFFF8FBF6);
@@ -113,22 +114,7 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
             if (_order.imagePath != null) ...[
               ClipRRect(
                 borderRadius: BorderRadius.circular(16),
-                child: Image.network(
-                  _order.imagePath!,
-                  width: double.infinity,
-                  height: 180,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    width: double.infinity,
-                    height: 180,
-                    decoration: BoxDecoration(
-                      color: _kNeutral100,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Icon(Icons.image_not_supported,
-                        size: 36, color: Color(0xFFAAAAAA)),
-                  ),
-                ),
+                child: AppNetworkImage(url: _order.imagePath!, width: double.infinity, height: 180, fit: BoxFit.cover)
               ),
               const SizedBox(height: 16),
             ],

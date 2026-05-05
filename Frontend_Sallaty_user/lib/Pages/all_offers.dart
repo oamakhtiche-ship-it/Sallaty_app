@@ -1,8 +1,8 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'viewoffer.dart';
-import'my_offers.dart';
+import 'my_offers.dart';
+import 'network_image_widget.dart';
 
 class AllOffersPage extends StatelessWidget {
   final String      title;
@@ -100,8 +100,6 @@ class _OfferGridCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isNetwork = offer.imageUrl.startsWith('http');
-
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
@@ -142,15 +140,12 @@ class _OfferGridCard extends StatelessWidget {
                 ClipRRect(
                   borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(16)),
-                  child: isNetwork
-                      ? Image.network(offer.imageUrl,
-                      height: 110,
-                      width: double.infinity,
-                      fit: BoxFit.cover)
-                      : Image.file(File(offer.imageUrl),
-                      height: 110,
-                      width: double.infinity,
-                      fit: BoxFit.cover),
+                  child: AppNetworkImage(
+                    url: offer.imageUrl,
+                    height: 110,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
                 ),
                 Positioned(
                   top: 8,

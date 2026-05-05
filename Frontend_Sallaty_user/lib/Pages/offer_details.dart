@@ -3,7 +3,8 @@ import 'my_offers.dart';
 import 'view_reservations.dart';
 import 'edit_offer.dart';
 import 'dart:io';
-import 'offer_store.dart'; // ✅ AJOUTER
+import 'offer_store.dart'; 
+import 'network_image_widget.dart';
 
 class OfferDetailsPage extends StatefulWidget {
   final Offer offer;
@@ -477,14 +478,14 @@ Center(
   }) {
     return Container(
       width: 140,
-      height: 40,
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 6),
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             label,

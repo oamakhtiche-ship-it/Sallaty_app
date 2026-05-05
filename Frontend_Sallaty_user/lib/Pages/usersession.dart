@@ -5,6 +5,7 @@ class UserSession {
   factory UserSession() => _instance;
   UserSession._internal();
 
+  // ── Raw fields ─────────────────────────────────────────────────
   String? id;
   String? token;
   String? name;
@@ -18,6 +19,7 @@ class UserSession {
   String? businessType;
   bool    isMerchant = false;
 
+  // ── Computed getters ───────────────────────────────────────────
   String get fullName {
     final parts = [name, surname ?? lastName]
         .where((p) => p != null && p.isNotEmpty);
@@ -34,63 +36,81 @@ class UserSession {
   bool get isLoggedIn => token    != null && token!.isNotEmpty;
   int  get intId      => int.tryParse(id ?? '') ?? 0;
 
+  // ── Normalise photo URL (relative → absolute) ──────────────────
+  static String _normaliseUrl(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return '';
+    final s = raw.trim();
+    if (s.startsWith('http://') || s.startsWith('https://')) return s;
+    // Relative path — prepend base URL
+    const base = 'https://ethanol-hemstitch-strongbox.ngrok-free.dev';
+    return '$base${s.startsWith('/') ? s : '/$s'}';
+  }
+
+  // ── Hydrate from API JSON response ─────────────────────────────
   Future<void> hydrateFromJson(Map<String, dynamic> json) async {
     print('=== hydrateFromJson called ===');
-    print('=== token: ${json['token'] ?? json['accessToken']}');
-    print('=== user: ${json['user']}');
 
     token = json['token']?.toString()
          ?? json['accessToken']?.toString();
 
     final dynamic userRaw = json['user'];
-    final Map<String, dynamic> user = userRaw is Map<String, dynamic>
-        ? userRaw
-        : json;
+    final Map<String, dynamic> user =
+        userRaw is Map<String, dynamic> ? userRaw : json;
 
     final rawId = user['id'] ?? json['id'] ?? json['userId'];
     id = rawId?.toString();
 
-    name    = user['name']?.toString()
-           ?? user['firstName']?.toString();
-    surname = user['surname']?.toString()
-           ?? user['lastName']?.toString();
+    name    = _clean(user['name']        ?? user['firstName']);
+    surname = _clean(user['surname']     ?? user['lastName']);
     lastName = surname;
 
-    email = user['email']?.toString()
-         ?? user['contact']?.toString()
-         ?? json['email']?.toString()
-         ?? json['contact']?.toString();
+    email = _clean(
+      user['email']   ??
+      user['contact'] ??
+      json['email']   ??
+      json['contact'],
+    );
 
-    phone        = user['phone']?.toString()
-                ?? user['phoneNumber']?.toString()
-                ?? json['phone']?.toString();
+    phone = _clean(
+      user['phone']       ??
+      user['phoneNumber'] ??
+      json['phone'],
+    );
 
-    photoUrl     = user['profileImage']?.toString()
-                ?? user['photoUrl']?.toString()
-                ?? json['profileImage']?.toString()
-                ?? json['photoUrl']?.toString();
+    // ✅ Always normalise photo URL on load
+    final rawPhoto =
+        user['profileImage'] ??
+        user['photoUrl']     ??
+        json['profileImage'] ??
+        json['photoUrl'];
+    photoUrl = _normaliseUrl(rawPhoto?.toString());
 
-    wilaya       = user['wilaya']?.toString()
-                ?? json['wilaya']?.toString();
+    wilaya = _clean(user['wilaya'] ?? json['wilaya']);
 
-    businessName = user['businessName']?.toString()
-                ?? user['shopName']?.toString()
-                ?? json['businessName']?.toString()
-                ?? json['shopName']?.toString();
+    businessName = _clean(
+      user['businessName'] ??
+      user['shopName']     ??
+      json['businessName'] ??
+      json['shopName'],
+    );
 
-    businessType = user['businessType']?.toString()
-                ?? user['category']?.toString()
-                ?? json['businessType']?.toString()
-                ?? json['category']?.toString();
+    businessType = _clean(
+      user['businessType'] ??
+      user['category']     ??
+      json['businessType'] ??
+      json['category'],
+    );
 
-    // ✅ FIX — supporte bool ET String "true"/"false"
+    // Supports bool and String "true"/"false"
     final rawMerchant = user['isMerchant'] ?? json['isMerchant'];
     isMerchant = rawMerchant == true || rawMerchant?.toString() == 'true';
 
-    print('=== AFTER hydrate: token=$token, name=$name, email=$email, id=$id, isMerchant=$isMerchant');
+    print('=== AFTER hydrate: token=$token  name=$name  email=$email  '
+        'id=$id  isMerchant=$isMerchant  photoUrl=$photoUrl');
     await save();
   }
 
+  // ── Persist to SharedPreferences ───────────────────────────────
   Future<void> save() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('user_id',            id           ?? '');
@@ -105,39 +125,37 @@ class UserSession {
     await prefs.setString('user_business_name', businessName ?? '');
     await prefs.setString('user_business_type', businessType ?? '');
     await prefs.setBool(  'user_is_merchant',   isMerchant);
-    print('=== SAVED: token=$token, name=$name, id=$id, isMerchant=$isMerchant');
+    print('=== SAVED: token=$token  name=$name  id=$id  isMerchant=$isMerchant');
   }
 
-  Future<void> saveToPrefs() => save();
+  // Aliases kept for backward compatibility
+  Future<void> saveToPrefs()   => save();
   Future<void> loadFromPrefs() => load();
 
+  // ── Load from SharedPreferences ────────────────────────────────
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
-    id           = prefs.getString('user_id');
-    token        = prefs.getString('user_token');
-    name         = prefs.getString('user_name');
-    lastName     = prefs.getString('user_last_name');
-    surname      = prefs.getString('user_surname');
-    email        = prefs.getString('user_email');
-    phone        = prefs.getString('user_phone');
-    photoUrl     = prefs.getString('user_photo_url');
-    wilaya       = prefs.getString('user_wilaya');
-    businessName = prefs.getString('user_business_name');
-    businessType = prefs.getString('user_business_type');
+    id           = _orNull(prefs.getString('user_id'));
+    token        = _orNull(prefs.getString('user_token'));
+    name         = _orNull(prefs.getString('user_name'));
+    lastName     = _orNull(prefs.getString('user_last_name'));
+    surname      = _orNull(prefs.getString('user_surname'));
+    email        = _orNull(prefs.getString('user_email'));
+    phone        = _orNull(prefs.getString('user_phone'));
+    wilaya       = _orNull(prefs.getString('user_wilaya'));
+    businessName = _orNull(prefs.getString('user_business_name'));
+    businessType = _orNull(prefs.getString('user_business_type'));
     isMerchant   = prefs.getBool('user_is_merchant') ?? false;
 
-    if (id           != null && id!.isEmpty)           id           = null;
-    if (token        != null && token!.isEmpty)        token        = null;
-    if (name         != null && name!.isEmpty)         name         = null;
-    if (email        != null && email!.isEmpty)        email        = null;
-    if (photoUrl     != null && photoUrl!.isEmpty)     photoUrl     = null;
-    if (wilaya       != null && wilaya!.isEmpty)       wilaya       = null;
-    if (businessName != null && businessName!.isEmpty) businessName = null;
-    if (businessType != null && businessType!.isEmpty) businessType = null;
+    // ✅ Always normalise photo URL on load too
+    final rawPhoto = prefs.getString('user_photo_url') ?? '';
+    photoUrl = _normaliseUrl(rawPhoto.isEmpty ? null : rawPhoto);
 
-    print('=== LOADED: token=$token, name=$name, id=$id, isMerchant=$isMerchant');
+    print('=== LOADED: token=$token  name=$name  id=$id  '
+        'isMerchant=$isMerchant  photoUrl=$photoUrl');
   }
 
+  // ── Clear session (logout) ─────────────────────────────────────
   Future<void> clear() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
@@ -146,8 +164,9 @@ class UserSession {
     isMerchant = false;
   }
 
+  // ── Partial update helpers ─────────────────────────────────────
   Future<void> updatePhotoUrl(String url) async {
-    photoUrl = url;
+    photoUrl = _normaliseUrl(url);
     await save();
   }
 
@@ -159,15 +178,30 @@ class UserSession {
     if (data['email']        != null) email        = data['email']        as String;
     if (data['contact']      != null) email        = data['contact']      as String;
     if (data['phone']        != null) phone        = data['phone']        as String;
-    if (data['photoUrl']     != null) photoUrl     = data['photoUrl']     as String;
-    if (data['profileImage'] != null) photoUrl     = data['profileImage'] as String;
     if (data['wilaya']       != null) wilaya       = data['wilaya']       as String;
     if (data['businessName'] != null) businessName = data['businessName'] as String;
     if (data['businessType'] != null) businessType = data['businessType'] as String;
-    if (data['isMerchant']   != null) {
+
+    if (data['photoUrl']     != null) {
+      photoUrl = _normaliseUrl(data['photoUrl'] as String);
+    }
+    if (data['profileImage'] != null) {
+      photoUrl = _normaliseUrl(data['profileImage'] as String);
+    }
+
+    if (data['isMerchant'] != null) {
       final raw = data['isMerchant'];
       isMerchant = raw == true || raw.toString() == 'true';
     }
     await save();
   }
+
+  // ── Private helpers ────────────────────────────────────────────
+  static String? _clean(dynamic v) {
+    final s = v?.toString().trim();
+    return (s == null || s.isEmpty) ? null : s;
+  }
+
+  static String? _orNull(String? s) =>
+      (s == null || s.isEmpty) ? null : s;
 }

@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'apiservice.dart';
 import 'usersession.dart';
 import 'favori_button.dart';
+import 'network_image_widget.dart';
 
 class ViewOfferPage extends StatefulWidget {
   final String offerId;
@@ -79,7 +80,6 @@ class _ViewOfferPageState extends State<ViewOfferPage> {
       return;
     }
 
-    // ✅ Capture le context de ViewOfferPage pour pouvoir la pop depuis le dialog
     final pageContext = context;
 
     showModalBottomSheet(
@@ -94,7 +94,6 @@ class _ViewOfferPageState extends State<ViewOfferPage> {
         imageUrl:       widget.imageUrl,
         maxStock:       _maxStock,
         expirationDate: _expirationDate,
-        // ✅ Callback appelé quand l'utilisateur clique "Great!"
         onConfirmed: () => Navigator.pop(pageContext),
       ),
     );
@@ -135,14 +134,11 @@ class _ViewOfferPageState extends State<ViewOfferPage> {
                 fit: StackFit.expand,
                 children: [
                   widget.imageUrl.isNotEmpty
-                      ? Image.network(
-                          widget.imageUrl,
+                      ? AppNetworkImage(
+                          url: widget.imageUrl,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
-                            color: const Color(0xFFD0E6A5),
-                            child: const Icon(Icons.image_not_supported,
-                                size: 80, color: Colors.white),
-                          ),
+                          width: double.infinity,
+                          height: double.infinity,
                         )
                       : Container(
                           color: const Color(0xFFD0E6A5),
@@ -154,8 +150,10 @@ class _ViewOfferPageState extends State<ViewOfferPage> {
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                        colors: [Colors.transparent,
-                          Colors.black.withValues(alpha: 0.6)],
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withValues(alpha: 0.6),
+                        ],
                       ),
                     ),
                   ),
@@ -210,7 +208,8 @@ class _ViewOfferPageState extends State<ViewOfferPage> {
                           fontSize: 24, fontWeight: FontWeight.bold,
                           color: const Color(0xFF1A1A1A))),
                   const SizedBox(height: 10),
-                  _InfoChip(icon: Icons.location_on,
+                  _InfoChip(
+                      icon: Icons.location_on,
                       label: widget.location,
                       color: const Color(0xFF72A843)),
                   const SizedBox(height: 20),
@@ -379,7 +378,7 @@ class _ReservationSheet extends StatefulWidget {
   final String       imageUrl;
   final int          maxStock;
   final DateTime?    expirationDate;
-  final VoidCallback onConfirmed; // ✅ callback pour fermer ViewOfferPage
+  final VoidCallback onConfirmed;
 
   const _ReservationSheet({
     required this.offreId,
@@ -441,7 +440,6 @@ class _ReservationSheetState extends State<_ReservationSheet> {
     return (double.tryParse(raw) ?? 0) * _quantity;
   }
 
-  // ✅ Vrai appel backend POST /api/ordres/create
   Future<void> _confirm() async {
     if (_pickupDate.isEmpty) { _err('Please choose a pickup date'); return; }
     if (_pickupTime.isEmpty) { _err('Please choose a pickup time'); return; }
@@ -466,7 +464,7 @@ class _ReservationSheetState extends State<_ReservationSheet> {
 
       if (res.statusCode == 200) {
         if (!mounted) return;
-        Navigator.pop(context); // ferme le bottom sheet
+        Navigator.pop(context);
         _showSuccess();
       } else {
         try {
@@ -548,8 +546,8 @@ class _ReservationSheetState extends State<_ReservationSheet> {
                 width: double.infinity, height: 48,
                 child: ElevatedButton(
                   onPressed: () {
-                    Navigator.pop(dialogContext); // ✅ ferme le dialog
-                    widget.onConfirmed();         // ✅ ferme ViewOfferPage
+                    Navigator.pop(dialogContext);
+                    widget.onConfirmed();
                   },
                   style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF72A843),

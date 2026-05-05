@@ -3,7 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:intl/intl.dart';
 import 'conversation.dart';
 
-const String kBaseUrl =  'https://ethanol-hemstitch-strongbox.ngrok-free.dev';
+const String kBaseUrl = 'https://ethanol-hemstitch-strongbox.ngrok-free.dev';
 const String kApiUrl  = '$kBaseUrl/api';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -41,7 +41,7 @@ class ConversationSummary {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MODÈLE — Merchant  ← NOUVEAU (remplace UserSearchResult)
+// MODÈLE — Merchant
 // ─────────────────────────────────────────────────────────────────────────────
 class Merchant {
   final int    id;
@@ -63,30 +63,69 @@ class Merchant {
   });
 
   factory Merchant.fromJson(Map<String, dynamic> j) {
+    // ── Structure imbriquée { marchand: { user: {...} } } ──
     final marchand = j['marchand'] as Map<String, dynamic>?;
     if (marchand != null) {
       final user = marchand['user'] as Map<String, dynamic>?;
+
+      final firstName = user?['firstName']?.toString() ?? '';
+      final surname   = user?['surname']?.toString()   ?? '';
+      final fullName  = marchand['fullName']?.toString() ?? '';
+
+      String resolvedName = fullName.isNotEmpty
+          ? fullName
+          : '$firstName $surname'.trim();
+
+      String avatarRaw = marchand['avatarUrl']?.toString()
+          ?? user?['photoUrl']?.toString()
+          ?? '';
+      if (avatarRaw.isNotEmpty && !avatarRaw.startsWith('http')) {
+        avatarRaw = '$kBaseUrl/$avatarRaw';
+      }
+
       return Merchant(
         id: (marchand['userId'] as num?)?.toInt()
             ?? (user?['id'] as num?)?.toInt()
             ?? 0,
-        name: marchand['fullName']?.toString()
-            ?? '${user?['firstName'] ?? ''} ${user?['surname'] ?? ''}'.trim(),
+        name:       resolvedName,
         shopName:   marchand['shopName']?.toString()  ?? '',
         wilaya:     marchand['wilaya']?.toString()    ?? '',
         category:   marchand['category']?.toString()  ?? '',
-        avatarUrl:  marchand['avatarUrl']?.toString() ?? '',
+        avatarUrl:  avatarRaw,
         isVerified: marchand['isVerified'] as bool?   ?? false,
       );
     }
-    // Fallback structure plate
+
+    // ── Structure plate ──
+    final firstName = j['firstName']?.toString() ?? '';
+    final surname   = j['surname']?.toString()   ?? '';
+    final fullName  = j['fullName']?.toString()  ?? '';
+
+    String resolvedName = fullName.isNotEmpty
+        ? fullName
+        : '$firstName $surname'.trim();
+
+    String avatarRaw = j['avatarUrl']?.toString()
+        ?? j['photoUrl']?.toString()
+        ?? '';
+    if (avatarRaw.isNotEmpty && !avatarRaw.startsWith('http')) {
+      avatarRaw = '$kBaseUrl/$avatarRaw';
+    }
+
     return Merchant(
-      id:       (j['id'] as num?)?.toInt() ?? 0,
-      name:     '${j['firstName'] ?? ''} ${j['surname'] ?? ''}'.trim(),
-      shopName: j['shopName']?.toString() ?? '',
-      wilaya:   j['wilaya']?.toString()   ?? '',
+      id:         (j['id'] as num?)?.toInt()    ?? 0,
+      name:       resolvedName,
+      shopName:   j['shopName']?.toString()     ?? '',
+      wilaya:     j['wilaya']?.toString()       ?? '',
+      category:   j['category']?.toString()     ?? '',
+      avatarUrl:  avatarRaw,
+      isVerified: j['isVerified'] as bool?      ?? false,
     );
   }
+
+  /// Display name : shopName si disponible, sinon name
+  String get displayName =>
+      shopName.isNotEmpty ? shopName : (name.isNotEmpty ? name : 'Marchand');
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -95,19 +134,18 @@ class Merchant {
 class ChatApiService {
   late Dio _dio;
 
-  // Constructeur optionnel : accepte un token ou rien
   ChatApiService([String? token]) {
     _dio = Dio(BaseOptions(
       baseUrl: kApiUrl,
-      headers: token != null
-          ? {'Authorization': 'Bearer $token'}
-          : {},
+      headers: {
+        if (token != null) 'Authorization': 'Bearer $token',
+        'ngrok-skip-browser-warning': 'true',
+      },
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
     ));
   }
 
-  // Injecter / mettre à jour le token après construction
   void setToken(String token) {
     _dio.options.headers['Authorization'] = 'Bearer $token';
   }
@@ -121,21 +159,43 @@ class ChatApiService {
         .toList();
   }
 
-  // GET /api/search?q=...  → List<Merchant>
+  // ── Search merchants — gère les deux formats de réponse ──
+  // Format 1 : List directe  [ { marchand: {...} }, ... ]
+  // Format 2 : Map           { "offres": [...], "merchants": [...] }
   Future<List<Merchant>> searchMerchants(String query) async {
-    final res  = await _dio.get('/search', queryParameters: {'q': query});
-    final list = res.data as List<dynamic>;
-    final seen     = <int>{};
+    final res = await _dio.get('/search', queryParameters: {'q': query});
+    debugPrint('[CHAT SEARCH] raw data: ${res.data}');
+
+    List<dynamic> rawList = [];
+
+    if (res.data is List) {
+      rawList = res.data as List<dynamic>;
+    } else if (res.data is Map) {
+      final map = res.data as Map<String, dynamic>;
+      // Essaie plusieurs clés possibles
+      rawList = (map['merchants']  as List<dynamic>?) ??
+                (map['users']      as List<dynamic>?) ??
+                (map['results']    as List<dynamic>?) ??
+                (map['marchands']  as List<dynamic>?) ??
+                [];
+    }
+
+    debugPrint('[CHAT SEARCH] rawList.length: ${rawList.length}');
+
+    final seen      = <int>{};
     final merchants = <Merchant>[];
-    for (final item in list) {
-      final m = Merchant.fromJson(item as Map<String, dynamic>);
+
+    for (final item in rawList) {
+      if (item is! Map<String, dynamic>) continue;
+      debugPrint('[CHAT SEARCH] item: $item');
+      final m = Merchant.fromJson(item);
+      debugPrint('[CHAT SEARCH] parsed → id=${m.id} name=${m.name} shop=${m.shopName}');
       if (m.id != 0 && seen.add(m.id)) merchants.add(m);
     }
+
     return merchants;
   }
 
-  // Récupère une conv existante ou crée un objet local
-  // (le serveur créera la vraie conversation au 1er message STOMP)
   Future<ConversationSummary> getOrCreateConversation({
     required int    myUserId,
     required int    merchantId,
@@ -152,7 +212,6 @@ class ChatApiService {
       if (existing.isNotEmpty) return existing.first;
     } catch (_) {}
 
-    // Pas encore de conversation → retourne un placeholder local
     return ConversationSummary(
       conversationId:  cid,
       otherId:         merchantId,
@@ -163,7 +222,6 @@ class ChatApiService {
     );
   }
 
-  // PUT /api/messages/read/{conversationId}
   Future<void> markAsRead(String conversationId) async {
     await _dio.put('/messages/read/$conversationId');
   }
@@ -173,7 +231,7 @@ class ChatApiService {
 // ÉCRAN — ChatListScreen
 // ─────────────────────────────────────────────────────────────────────────────
 class ChatListScreen extends StatefulWidget {
-  final int    myUserId;   // ✅ int
+  final int    myUserId;
   final String myToken;
 
   const ChatListScreen({
@@ -195,9 +253,12 @@ class _ChatListScreenState extends State<ChatListScreen> {
   bool    _isLoading = true;
   String? _error;
 
-  bool                _searchMode    = false;
-  List<Merchant>      _searchResults = [];
-  bool                _searchLoading = false;
+  bool           _searchMode    = false;
+  List<Merchant> _searchResults = [];
+  bool           _searchLoading = false;
+
+  /// Total unread messages across all conversations
+  int get totalUnread => _conversations.fold(0, (sum, c) => sum + c.unreadCount);
 
   @override
   void initState() {
@@ -256,7 +317,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
       final results = await _api.searchMerchants(q);
       if (!mounted) return;
       setState(() { _searchResults = results; _searchLoading = false; });
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[ChatList] search error: $e');
       if (!mounted) return;
       setState(() { _searchResults = []; _searchLoading = false; });
     }
@@ -271,7 +333,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
     setState(() {
       final idx = _conversations.indexWhere((c) => c.conversationId == conversationId);
       if (idx == -1) return;
-      final conv       = _conversations[idx];
+      final conv           = _conversations[idx];
       conv.lastMessage     = isMe ? 'Vous : $lastMessage' : lastMessage;
       conv.lastMessageTime = time;
       if (!isMe) conv.unreadCount++;
@@ -281,8 +343,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
       _filtered = q.isEmpty
           ? List.from(_conversations)
           : _conversations
-          .where((c) => c.otherUserName.toLowerCase().contains(q))
-          .toList();
+              .where((c) => c.otherUserName.toLowerCase().contains(q))
+              .toList();
     });
   }
 
@@ -296,7 +358,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
         _conversations.insert(0, ConversationSummary(
           conversationId:  cid,
           otherId:         merchant.id,
-          otherUserName:   merchant.shopName.isNotEmpty ? merchant.shopName : merchant.name,
+          otherUserName:   merchant.displayName,
           lastMessage:     '',
           lastMessageTime: DateTime.now(),
           unreadCount:     0,
@@ -311,17 +373,17 @@ class _ChatListScreenState extends State<ChatListScreen> {
     await _navigateToChatRoom(
       cid,
       merchant.id,
-      merchant.shopName.isNotEmpty ? merchant.shopName : merchant.name,
+      merchant.displayName,
       merchant.avatarUrl,
     );
   }
 
   Future<void> _navigateToChatRoom(
-      String conversationId,
-      int    receiverId,
-      String receiverName,
-      String receiverAvatar,
-      ) async {
+    String conversationId,
+    int    receiverId,
+    String receiverName,
+    String receiverAvatar,
+  ) async {
     await Navigator.push(
       context,
       MaterialPageRoute(
@@ -374,48 +436,19 @@ class _ChatListScreenState extends State<ChatListScreen> {
         title: const Text(
           'Messages',
           style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w500,
-            fontSize:   22,
-            color:      Color(0xFF72A843),
+            fontFamily:  'Poppins',
+            fontWeight:  FontWeight.w500,
+            fontSize:    22,
+            color:       Color(0xFF72A843),
           ),
         ),
         centerTitle: true,
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-            child: Container(
-              height: 44,
-              decoration: BoxDecoration(
-                color:        Colors.white,
-                borderRadius: BorderRadius.circular(22),
-                border:       Border.all(color: const Color(0xFFC3C4C3)),
-              ),
-              child: TextField(
-                controller: _searchController,
-                decoration: const InputDecoration(
-                  hintText:        'Rechercher un marchand ou une conversation…',
-                  hintStyle:       TextStyle(color: Color(0xFF717270), fontSize: 14),
-                  prefixIcon:      Icon(Icons.search, color: Color(0xFF72A843), size: 22),
-                  border:          InputBorder.none,
-                  contentPadding:  EdgeInsets.symmetric(vertical: 12),
-                ),
-              ),
-            ),
-          ),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: Color(0xFF72A843)))
-                : _error != null
-                ? _buildError()
-                : _searchMode
-                ? _buildSearchResults()
-                : _buildConversationList(),
-          ),
-        ],
-      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF72A843)))
+          : _error != null
+              ? _buildError()
+              : _buildConversationList(),
     );
   }
 
@@ -446,7 +479,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
             Icon(Icons.chat_bubble_outline, size: 64, color: Color(0xFFCCCCCC)),
             SizedBox(height: 12),
             Text(
-              'Aucune conversation\nRecherche un marchand pour démarrer',
+              'Aucune conversation pour l\'instant',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey, fontSize: 14),
             ),
@@ -514,10 +547,11 @@ class _ChatListScreenState extends State<ChatListScreen> {
     if (_searchResults.isNotEmpty) {
       allItems.add(const _SectionHeader(title: 'Marchands'));
       for (final merchant in _searchResults) {
+        // Ne pas afficher si déjà dans les conversations filtrées
         if (_conversations.any((c) => c.otherId == merchant.id)) continue;
         allItems.add(_ConversationTile(
-          name:      merchant.shopName.isNotEmpty ? merchant.shopName : merchant.name,
-          lastMsg:   merchant.wilaya,
+          name:      merchant.displayName,
+          lastMsg:   merchant.wilaya.isNotEmpty ? merchant.wilaya : 'Marchand',
           timeLabel: '',
           unread:    0,
           onTap:     () => _openChatWithMerchant(merchant),
@@ -636,7 +670,9 @@ class _ConversationTile extends StatelessWidget {
                 children: [
                   Text(name,
                       style: const TextStyle(
-                          fontWeight: FontWeight.w600, fontSize: 15, color: Color(0xFF000E08))),
+                          fontWeight: FontWeight.w600,
+                          fontSize:   15,
+                          color:      Color(0xFF000E08))),
                   const SizedBox(height: 4),
                   Text(lastMsg,
                       maxLines: 1,
@@ -644,7 +680,9 @@ class _ConversationTile extends StatelessWidget {
                       style: TextStyle(
                         fontWeight: hasUnread ? FontWeight.w600 : FontWeight.w400,
                         fontSize:   13,
-                        color:      hasUnread ? const Color(0xFF1A1A1A) : const Color(0xFF888888),
+                        color: hasUnread
+                            ? const Color(0xFF1A1A1A)
+                            : const Color(0xFF888888),
                       )),
                 ],
               ),
@@ -655,7 +693,9 @@ class _ConversationTile extends StatelessWidget {
                   style: TextStyle(
                     fontSize:   11,
                     fontWeight: hasUnread ? FontWeight.w600 : FontWeight.w400,
-                    color:      hasUnread ? const Color(0xFF72A843) : const Color(0xFF888888),
+                    color: hasUnread
+                        ? const Color(0xFF72A843)
+                        : const Color(0xFF888888),
                   )),
           ],
         ),

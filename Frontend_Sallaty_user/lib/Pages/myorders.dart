@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'orderstore.dart';
 import 'order_item.dart';
 import 'order_details.dart';
+import 'network_image_widget.dart';
 
 const _kPrimary500    = Color(0xFF72A843);
 const _kBackground    = Color(0xFFF8FBF6);
@@ -17,7 +18,8 @@ const _kPickedBg      = Color(0xFFD7D8D7);
 const _kPickedText    = Color(0xFF5A5B59);
 
 class MyOrdersPage extends StatefulWidget {
-  const MyOrdersPage({super.key});
+  final VoidCallback? onBrowse;
+  const MyOrdersPage({super.key, this.onBrowse});
 
   @override
   State<MyOrdersPage> createState() => _MyOrdersPageState();
@@ -183,8 +185,8 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
             // ── Liste ou état vide ───────────────────────────────
             _filtered.isEmpty
                 ? SliverFillRemaining(
-                    child: _EmptyState(onBrowse: () {}),
-                  )
+              child: _EmptyState(onBrowse: () => widget.onBrowse?.call()),
+             )
                 : SliverList(
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
@@ -299,13 +301,7 @@ class _OrderCard extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: order.imagePath != null
-                  ? Image.network(
-                      order.imagePath!,
-                      width: 64,
-                      height: 64,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _placeholder(),
-                    )
+                  ? AppNetworkImage(url: order.imagePath!, width: 64, height: 64, fit: BoxFit.cover)
                   : _placeholder(),
             ),
 

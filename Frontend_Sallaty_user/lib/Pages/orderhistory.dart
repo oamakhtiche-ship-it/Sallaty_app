@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'orderstore.dart';
 import 'order_item.dart';
-
+import 'network_image_widget.dart';
 class OrderHistoryPage extends StatefulWidget {
   const OrderHistoryPage({super.key});
 
@@ -105,29 +105,32 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
                 ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                child: TabBar(
-                  controller: _tabController,
-                  indicator: BoxDecoration(
-                    color: const Color(0xFF72A843),
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  labelColor: Colors.white,
-                  unselectedLabelColor: Colors.black54,
-                  dividerColor: Colors.transparent,
-                  tabs: const [
-                    Tab(text: 'Sold'),
-                    Tab(text: 'Bought'),
-                  ],
-                ),
-              ),
-            ),
+         const SizedBox(height: 9),
+          Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+  child: Container(
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(30),
+    ),
+    child: TabBar(
+      controller: _tabController,
+      indicator: BoxDecoration(
+        color: const Color(0xFF72A843),
+        borderRadius: BorderRadius.circular(30),
+      ),
+      indicatorSize: TabBarIndicatorSize.tab, 
+      labelPadding: EdgeInsets.zero,
+      labelColor: Colors.white,
+      unselectedLabelColor: Colors.black54,
+      dividerColor: Colors.transparent,
+      tabs: const [
+        Tab(text: 'Sold'),
+        Tab(text: 'Bought'),
+      ],
+    ),
+  ),
+),
             const SizedBox(height: 12),
             Expanded(
               child: TabBarView(
@@ -241,13 +244,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage>
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: order.imagePath != null
-                ? Image.network(
-              order.imagePath!,
-              width: 75,
-              height: 75,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => _placeholder(),
-            )
+                ? AppNetworkImage(url: order.imagePath!, width: 75, height: 75, fit: BoxFit.cover)
                 : _placeholder(),
           ),
           const SizedBox(width: 12),

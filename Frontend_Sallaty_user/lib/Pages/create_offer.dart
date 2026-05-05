@@ -55,7 +55,7 @@ const List<String> _kWilayas = [
   '25 - Constantine',
   '26 - Médéa',
   '27 - Mostaganem',
-  '28 - M\'Sila',
+  "28 - M'Sila",
   '29 - Mascara',
   '30 - Ouargla',
   '31 - Oran',
@@ -96,10 +96,10 @@ class _CreateOfferPageState extends State<CreateOfferPage> {
   String? _selectedFoodType;
   String? _selectedWilaya;
   String? _selectedStatus;
+  DateTime? _selectedDate; // ✅ Date choisie via calendrier
 
-  // ✅ Stocke le XFile pour avoir accès à .path (Android) et .readAsBytes() (Web)
   XFile? _pickedImage;
-  Uint8List? _imagePreviewBytes; // uniquement pour l'aperçu
+  Uint8List? _imagePreviewBytes;
   String? _imageFilename;
 
   bool _isLoading = false;
@@ -113,6 +113,47 @@ class _CreateOfferPageState extends State<CreateOfferPage> {
     super.dispose();
   }
 
+  // ── Ouvre le calendrier ──────────────────────────────────────────
+  Future<void> _pickDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? DateTime.now().add(const Duration(days: 1)),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF72A843),    // header + jour sélectionné
+              onPrimary: Colors.white,        // texte sur vert
+              onSurface: Color(0xFF222222),   // texte des jours
+              surface: Colors.white,
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFF72A843), // OK / CANCEL
+              ),
+            ),
+            dialogTheme: DialogThemeData(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        _selectedDate = picked;
+        _dateCtrl.text =
+            '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+      });
+    }
+  }
+
   // ── Pick image ───────────────────────────────────────────────────
   Future<void> _pickImage() async {
     final XFile? image = await ImagePicker().pickImage(
@@ -121,7 +162,6 @@ class _CreateOfferPageState extends State<CreateOfferPage> {
     );
     if (image == null) return;
 
-    // Lire les bytes uniquement pour l'aperçu
     final bytes = await image.readAsBytes();
     setState(() {
       _pickedImage = image;
@@ -151,7 +191,6 @@ class _CreateOfferPageState extends State<CreateOfferPage> {
     try {
       final token = UserSession().token ?? '';
 
-      // ── Étape 1 : créer l'offre (sans image) ──────────────────────
       final uri = Uri.parse('${ApiConfig.baseUrl}/api/offres/create');
       final request = http.MultipartRequest('POST', uri)
         ..headers['Authorization'] = 'Bearer $token'
@@ -173,7 +212,6 @@ class _CreateOfferPageState extends State<CreateOfferPage> {
       if (!mounted) return;
 
       if (res.statusCode == 200 || res.statusCode == 201) {
-        // ── Étape 2 : upload photo séparément ─────────────────────
         if (_pickedImage != null) {
           try {
             String? offerId;
@@ -183,11 +221,11 @@ class _CreateOfferPageState extends State<CreateOfferPage> {
             } catch (_) {}
 
             if (offerId != null) {
-              final photoUri = Uri.parse('${ApiConfig.baseUrl}/api/offres/photo/$offerId');
+              final photoUri =
+                  Uri.parse('${ApiConfig.baseUrl}/api/offres/photo/$offerId');
               final photoReq = http.MultipartRequest('POST', photoUri)
                 ..headers['Authorization'] = 'Bearer $token';
 
-              // ✅ BRANCHING PLATFORM : File sur Android/iOS, bytes sur Web
               if (kIsWeb) {
                 final bytes = await _pickedImage!.readAsBytes();
                 photoReq.files.add(http.MultipartFile.fromBytes(
@@ -263,7 +301,6 @@ class _CreateOfferPageState extends State<CreateOfferPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Offer Name ────────────────────────────────────────
               _label('Offer Name', req: true),
               _textField(
                 ctrl: _titleCtrl,
@@ -273,7 +310,6 @@ class _CreateOfferPageState extends State<CreateOfferPage> {
               ),
               const SizedBox(height: 14),
 
-              // ── Description ───────────────────────────────────────
               _label('Description', req: true),
               _textField(
                 ctrl: _descCtrl,
@@ -284,7 +320,6 @@ class _CreateOfferPageState extends State<CreateOfferPage> {
               ),
               const SizedBox(height: 14),
 
-              // ── Picture ───────────────────────────────────────────
               _label('Picture', req: true),
               GestureDetector(
                 onTap: _pickImage,
@@ -331,7 +366,6 @@ class _CreateOfferPageState extends State<CreateOfferPage> {
               ),
               const SizedBox(height: 14),
 
-              // ── Category (foodtype) ───────────────────────────────
               _label('Category', req: true),
               _dropdown(
                 value: _selectedFoodType,
@@ -341,11 +375,9 @@ class _CreateOfferPageState extends State<CreateOfferPage> {
               ),
               const SizedBox(height: 14),
 
-              // ── Quantity + Price ──────────────────────────────────
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Quantity
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -386,7 +418,6 @@ class _CreateOfferPageState extends State<CreateOfferPage> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  // Price
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -406,7 +437,6 @@ class _CreateOfferPageState extends State<CreateOfferPage> {
               ),
               const SizedBox(height: 14),
 
-              // ── Address (wilaya) ──────────────────────────────────
               _label('Address', req: true),
               _dropdown(
                 value: _selectedWilaya,
@@ -416,20 +446,57 @@ class _CreateOfferPageState extends State<CreateOfferPage> {
               ),
               const SizedBox(height: 14),
 
-              // ── Expiration Date ───────────────────────────────────
+              // ── Expiration Date — CALENDRIER ──────────────────────
               _label('Expiration Date', req: false),
-              _textField(
-                ctrl: _dateCtrl,
-                hint: 'YYYY-MM-DD',
-                keyboardType: TextInputType.datetime,
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[\d\-]')),
-                  LengthLimitingTextInputFormatter(10),
-                ],
+              GestureDetector(
+                onTap: _pickDate,
+                child: AbsorbPointer(
+                  // ✅ bloque le clavier, seul le calendrier s'ouvre
+                  child: TextFormField(
+                    controller: _dateCtrl,
+                    style:
+                        const TextStyle(fontSize: 14, color: Color(0xFF222222)),
+                    decoration: InputDecoration(
+                      hintText: 'Choose a date',
+                      hintStyle: const TextStyle(
+                          color: Color(0xFF9E9E9E), fontSize: 13),
+                      filled: true,
+                      fillColor: const Color(0xFFF5F5F5),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 14),
+                      // ✅ icône croix pour effacer, calendrier si vide
+                      suffixIcon: _selectedDate != null
+                          ? IconButton(
+                              icon: const Icon(Icons.clear,
+                                  color: Color(0xFF9E9E9E), size: 18),
+                              onPressed: () => setState(() {
+                                _selectedDate = null;
+                                _dateCtrl.clear();
+                              }),
+                            )
+                          : const Icon(Icons.calendar_today,
+                              color: Color(0xFF72A843), size: 20),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide:
+                            const BorderSide(color: Color(0xFFE0E0E0)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide:
+                            const BorderSide(color: Color(0xFFE0E0E0)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                            color: Color(0xFF72A843), width: 1.5),
+                      ),
+                    ),
+                  ),
+                ),
               ),
               const SizedBox(height: 14),
 
-              // ── Status ────────────────────────────────────────────
               _label('Status', req: true),
               _dropdown(
                 value: _selectedStatus,
@@ -439,7 +506,6 @@ class _CreateOfferPageState extends State<CreateOfferPage> {
               ),
               const SizedBox(height: 32),
 
-              // ── Submit ────────────────────────────────────────────
               SizedBox(
                 width: double.infinity,
                 height: 52,
@@ -475,7 +541,6 @@ class _CreateOfferPageState extends State<CreateOfferPage> {
     );
   }
 
-  // ── Widget helpers ───────────────────────────────────────────────
   Widget _qtyBtn({required IconData icon, required VoidCallback onTap}) =>
       GestureDetector(
         onTap: onTap,
@@ -501,8 +566,7 @@ class _CreateOfferPageState extends State<CreateOfferPage> {
                 color: Color(0xFF333333)),
             children: req
                 ? const [
-                    TextSpan(
-                        text: '*', style: TextStyle(color: Colors.red))
+                    TextSpan(text: '*', style: TextStyle(color: Colors.red))
                   ]
                 : [],
           ),

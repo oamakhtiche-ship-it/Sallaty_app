@@ -5,6 +5,8 @@ import 'dart:async';
 import 'splashscreen1.dart';
 import 'usersession.dart';
 import 'home.dart';
+import 'package:google_fonts/google_fonts.dart';
+
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -181,30 +183,28 @@ class _SplashScreenState extends State<SplashScreen>
 
                   const SizedBox(height: 20),
 
-                  FadeTransition(
-                    opacity: _textOpacity,
-                    child: SlideTransition(
-                      position: _textSlide,
-                      child: Text(
-                        'Sallaty',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 38,
-                          fontStyle: FontStyle.italic,
-                          fontWeight: FontWeight.w400,
-                          color: const Color(0xFF3A6B1A),
-                          letterSpacing: 1.5,
-                          shadows: [
-                            Shadow(
-                              color: const Color(0xFF3A6B1A).withValues(alpha: 0.15),
-                              offset: const Offset(0, 2),
-                              blurRadius: 8,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
+  FadeTransition(
+  opacity: _textOpacity,
+  child: SlideTransition(
+    position: _textSlide,
+    child: Text(
+      'Sallaty',
+    style: GoogleFonts.greatVibes(
+  fontSize: 72,
+  fontWeight: FontWeight.w400,
+  color: const Color(0xFF2D5A10),
+  letterSpacing: 2.0,
+  shadows: [
+    Shadow(
+      color: const Color(0xFF2D5A10).withValues(alpha: 0.20),
+      offset: const Offset(1, 3),
+      blurRadius: 10,
+    ),
+  ],
+ ),
+    ),
+  ),
+),
                 ],
               ),
             ),

@@ -87,7 +87,7 @@ class _EmailPageState extends State<EmailPage> {
             children: [
 
               Center(
-                child: Image.asset('assets/images/entermobile.png',
+                child: Image.asset('assets/images/enter_mobile.png',
                     width: 280, height: 280, fit: BoxFit.contain,
                     errorBuilder: (_, __, ___) => Container(
                         width: 280, height: 280, color: Colors.grey[200],

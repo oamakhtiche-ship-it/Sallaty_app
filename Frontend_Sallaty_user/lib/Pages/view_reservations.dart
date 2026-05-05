@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'orderstore.dart';
-import 'client_public_profile.dart';  // ✅ page profil public
+import 'client_public_profile.dart';
+import 'network_image_widget.dart';
 
 class ViewReservationsPage extends StatefulWidget {
   final String offerId;
@@ -162,11 +163,16 @@ class _ReservationCard extends StatelessWidget {
             child: CircleAvatar(
               radius: 24,
               backgroundColor: const Color(0xFFD0E2C0),
-              backgroundImage: record.profilePhoto.isNotEmpty
-                  ? NetworkImage(record.profilePhoto)
-                  : null,
-              child: record.profilePhoto.isEmpty
-                  ? Text(
+              child: record.profilePhoto.isNotEmpty
+                  ? ClipOval(
+                      child: AppNetworkImage(
+                        url: record.profilePhoto,
+                        width: 48,
+                        height: 48,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                  : Text(
                       record.clientName.isNotEmpty
                           ? record.clientName[0].toUpperCase()
                           : '?',
@@ -176,8 +182,7 @@ class _ReservationCard extends StatelessWidget {
                         fontSize: 18,
                         color: Color(0xFF5F8C38),
                       ),
-                    )
-                  : null,
+                    ),
             ),
           ),
 

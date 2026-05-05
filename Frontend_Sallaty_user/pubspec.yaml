@@ -13,12 +13,14 @@ dependencies:
   flutter_localizations:
     sdk: flutter
 
+
   # Navigation & UI
   curved_navigation_bar: ^1.0.6
   google_fonts: ^8.0.2
   flutter_spinkit: ^5.2.2
   font_awesome_flutter: ^11.0.0
   cupertino_icons: ^1.0.8
+  
 
   # Location
   geolocator: ^14.0.2

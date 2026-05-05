@@ -1,8 +1,8 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'usersession.dart';
 import 'apiservice.dart';
 import 'editprofile.dart';
+import 'network_image_widget.dart';
 
 class ManageProfilePage extends StatefulWidget {
   const ManageProfilePage({super.key});
@@ -118,13 +118,16 @@ class _ManageProfilePageState extends State<ManageProfilePage> {
                 CircleAvatar(
                   radius: 48,
                   backgroundColor: const Color(0xFFD0E6A5),
-                  backgroundImage: session.hasPhoto
-                      ? (session.photoUrl!.startsWith('http')
-                          ? NetworkImage(session.photoUrl!) as ImageProvider
-                          : FileImage(File(session.photoUrl!)) as ImageProvider)
-                      : null,
-                  child: !session.hasPhoto
-                      ? Text(
+                  child: session.hasPhoto
+                      ? ClipOval(
+                          child: AppNetworkImage(
+                            url: session.photoUrl!,
+                            width: 96,
+                            height: 96,
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                      : Text(
                           (session.name?.isNotEmpty ?? false)
                               ? session.name![0].toUpperCase()
                               : '?',
@@ -132,8 +135,7 @@ class _ManageProfilePageState extends State<ManageProfilePage> {
                               fontSize: 32,
                               fontWeight: FontWeight.bold,
                               color: Color(0xFF72A843)),
-                        )
-                      : null,
+                        ),
                 ),
                 if (session.isMerchant)
                   Positioned(

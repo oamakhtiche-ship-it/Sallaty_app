@@ -17,7 +17,6 @@ class _StatisticsPageState extends State<StatisticsPage> {
   String? _error;
   Map<String, dynamic> _data = {};
 
-  // ✅ Uses isMerchant bool from UserSession (no role field)
   bool get _isMerchant => UserSession().isMerchant;
 
   @override
@@ -29,7 +28,6 @@ class _StatisticsPageState extends State<StatisticsPage> {
   Future<void> _load() async {
     setState(() { _loading = true; _error = null; });
     try {
-      // ✅ Correct API URLs
       final endpoint = _isMerchant
           ? '/api/statistics/marchand'
           : '/api/statistics/client';
@@ -44,16 +42,30 @@ class _StatisticsPageState extends State<StatisticsPage> {
       );
 
       if (response.statusCode == 200) {
-        setState(() {
-          _data = jsonDecode(response.body) as Map<String, dynamic>;
-          _loading = false;
-        });
-      } else {
-        setState(() {
-          _error = 'Stats error: ${response.statusCode}\n${response.body}';
-          _loading = false;
-        });
-      }
+  final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+  
+  // DEBUG - affiche les URLs des images dans la console
+  if (_isMerchant) {
+    final topItems = decoded['topSellingItems'] as List? ?? [];
+    final followers = decoded['newFollowers'] as List? ?? [];
+    for (var item in topItems) {
+      print('📸 topItem photoUrl: ${item['photoUrl']}');
+    }
+    for (var f in followers) {
+      print('👤 follower photoUrl: ${f['photoUrl']}');
+    }
+  } else {
+    final orders = decoded['recentOrders'] as List? ?? [];
+    for (var o in orders) {
+      print('🛒 order photoUrl: ${o['photoUrl']}');
+    }
+  }
+
+  setState(() {
+    _data = decoded;
+    _loading = false;
+  });
+}
     } catch (e) {
       setState(() {
         _error = e.toString();
@@ -116,8 +128,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
               onPressed: _load,
               style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF4CAF50)),
-              child: const Text('Retry',
-                  style: TextStyle(color: Colors.white)),
+              child: const Text('Retry', style: TextStyle(color: Colors.white)),
             )
           ],
         ),
@@ -126,7 +137,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
   }
 
   // ════════════════════════════════════════════════════════════
-  //  MERCHANT VIEW  — /api/statistics/marchand
+  //  MERCHANT VIEW
   // ════════════════════════════════════════════════════════════
   Widget _buildMerchantView() {
     final int totalRevenue   = (_data['totalRevenue']   as num? ?? 0).toInt();
@@ -149,7 +160,6 @@ class _StatisticsPageState extends State<StatisticsPage> {
           _sectionTitle('Dashboard'),
           const SizedBox(height: 8),
 
-          // Row 1
           Row(children: [
             _statCard('$totalRevenue DA', 'Total Revenue',
                 Icons.attach_money, Colors.green),
@@ -162,7 +172,6 @@ class _StatisticsPageState extends State<StatisticsPage> {
           ]),
           const SizedBox(height: 8),
 
-          // Row 2
           Row(children: [
             _statCard('$totalOffers', 'Total Offers',
                 Icons.label, Colors.green),
@@ -174,7 +183,6 @@ class _StatisticsPageState extends State<StatisticsPage> {
           ]),
           const SizedBox(height: 20),
 
-          // New Followers
           _sectionTitle('New Followers'),
           const SizedBox(height: 8),
           newFollowers.isEmpty
@@ -185,11 +193,9 @@ class _StatisticsPageState extends State<StatisticsPage> {
                       .toList()),
           const SizedBox(height: 20),
 
-          // Revenue card
           _revenueCard(revenueToday, revenueWeek, revenueMonth, chart),
           const SizedBox(height: 20),
 
-          // Top items
           if (topItems.isNotEmpty) ...[
             _sectionTitle('Top Selling Items'),
             const SizedBox(height: 8),
@@ -201,7 +207,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
   }
 
   // ════════════════════════════════════════════════════════════
-  //  CLIENT VIEW  — /api/statistics/client
+  //  CLIENT VIEW
   // ════════════════════════════════════════════════════════════
   Widget _buildClientView() {
     final int totalOrders = (_data['totalOrders'] as num? ?? 0).toInt();
@@ -243,7 +249,6 @@ class _StatisticsPageState extends State<StatisticsPage> {
           ]),
           const SizedBox(height: 20),
 
-          // Spending chart
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -323,8 +328,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
     );
   }
 
-  Widget _revenueCard(
-      int today, int week, int month, List chart) {
+  Widget _revenueCard(int today, int week, int month, List chart) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -370,38 +374,66 @@ class _StatisticsPageState extends State<StatisticsPage> {
             style: const TextStyle(color: Colors.white70, fontSize: 10)),
       ]));
 
-  Widget _followerTile(Map f) => ListTile(
+     Widget _followerTile(Map f) {
+  final fullUrl = _buildImageUrl(f['photoUrl']?.toString());
+  final isValid = fullUrl.isNotEmpty &&
+      Uri.tryParse(fullUrl)?.hasAuthority == true;
+
+  return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: CircleAvatar(
           backgroundColor: const Color(0xFFE8F5E9),
-          backgroundImage:
-              (f['photoUrl'] != null && f['photoUrl'].toString().isNotEmpty)
-                  ? NetworkImage(f['photoUrl'].toString())
-                  : null,
-          child:
-              (f['photoUrl'] == null || f['photoUrl'].toString().isEmpty)
-                  ? const Icon(Icons.person, color: Color(0xFF4CAF50))
-                  : null),
+          backgroundImage: isValid
+              ? NetworkImage(fullUrl, headers: {'ngrok-skip-browser-warning': 'true'})
+              : null,
+          child: !isValid
+              ? const Icon(Icons.person, color: Color(0xFF4CAF50))
+              : null),
       title: Text(f['name']?.toString() ?? 'Client',
           style: const TextStyle(fontWeight: FontWeight.w500)));
-
+}
   Widget _topItemTile(Map item) => Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12)),
-      child: Row(children: [
-        _photoBox(item['photoUrl']?.toString(), Icons.image),
-        const SizedBox(width: 12),
-        Expanded(
-            child: Text(item['title']?.toString() ?? '',
-                style: const TextStyle(fontWeight: FontWeight.w500))),
-        Text('${item['count']} sold',
-            style: const TextStyle(
-                color: Color(0xFF4CAF50),
-                fontWeight: FontWeight.bold)),
-      ]));
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          _photoBox(item['photoUrl']?.toString(), Icons.image),
+          const SizedBox(width: 12),
+          Expanded(
+              child: Text(
+            item['title']?.toString() ?? '',
+            style: const TextStyle(fontWeight: FontWeight.w500),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          )),
+          const SizedBox(width: 8),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 80),
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8F5E9),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '${item['count']} sold',
+                style: const TextStyle(
+                    color: Color(0xFF4CAF50),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+        ],
+      ));
 
   Widget _orderTile(Map o) {
     final status = (o['status'] ?? '').toString().toUpperCase();
@@ -431,8 +463,8 @@ class _StatisticsPageState extends State<StatisticsPage> {
                         color: Colors.black54, fontSize: 12)),
               ])),
           Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 8, vertical: 4),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
                   color: statusColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8)),
@@ -444,22 +476,52 @@ class _StatisticsPageState extends State<StatisticsPage> {
         ]));
   }
 
-  /// Shared photo thumbnail
-  Widget _photoBox(String? url, IconData fallback) {
-    if (url != null && url.isNotEmpty) {
-      return ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Image.network(url,
-              width: 48, height: 48, fit: BoxFit.cover));
-    }
-    return Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-            color: const Color(0xFFE8F5E9),
-            borderRadius: BorderRadius.circular(8)),
-        child: Icon(fallback, color: const Color(0xFF4CAF50)));
+ // Helper pour construire l'URL complète
+String _buildImageUrl(String? url) {
+  if (url == null || url.isEmpty) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  
+  // S'assure qu'il y a exactement un "/" entre baseUrl et le path
+  final base = ApiConfig.baseUrl.endsWith('/')
+      ? ApiConfig.baseUrl
+      : '${ApiConfig.baseUrl}/';
+  final path = url.startsWith('/') ? url.substring(1) : url;
+  
+  return '$base$path';
+}
+
+Widget _photoBox(String? url, IconData fallback) {
+  final fullUrl = _buildImageUrl(url);
+  final isValid = fullUrl.isNotEmpty &&
+      Uri.tryParse(fullUrl)?.hasAuthority == true;
+
+  if (isValid) {
+    return ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Image.network(
+          fullUrl,
+          width: 48,
+          height: 48,
+          fit: BoxFit.cover,
+          headers: const {'ngrok-skip-browser-warning': 'true'},  // ← si tu utilises ngrok
+          errorBuilder: (context, error, stackTrace) => Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+                color: const Color(0xFFE8F5E9),
+                borderRadius: BorderRadius.circular(8)),
+            child: Icon(fallback, color: const Color(0xFF4CAF50)),
+          ),
+        ));
   }
+  return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+          color: const Color(0xFFE8F5E9),
+          borderRadius: BorderRadius.circular(8)),
+      child: Icon(fallback, color: const Color(0xFF4CAF50)));
+}
 
   // ════════════════════════════════════════════════════════════
   //  CHART

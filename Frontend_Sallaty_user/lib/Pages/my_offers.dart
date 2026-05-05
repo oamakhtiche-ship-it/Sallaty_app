@@ -9,6 +9,7 @@ import 'create_offer.dart';
 import 'offer_store.dart';
 import 'apiservice.dart';
 import 'usersession.dart';
+import 'network_image_widget.dart';
 
 // ── Modèle Offer ──────────────────────────────────────────────────────
 class Offer {
@@ -43,12 +44,16 @@ class Offer {
   });
 
   factory Offer.fromJson(Map<String, dynamic> json) {
-    String rawImage = json['imageUrl']?.toString()
-                   ?? json['imagePath']?.toString()
-                   ?? '';
-    if (rawImage.isNotEmpty && !rawImage.startsWith('http')) {
-      rawImage = '${ApiConfig.baseUrl}/$rawImage';
-    }
+    // Cherche toutes les clés possibles renvoyées par le backend
+    final rawImage = json['imageUrl']?.toString()
+                  ?? json['imagePath']?.toString()
+                  ?? json['photo']?.toString()
+                  ?? json['image']?.toString()
+                  ?? json['photoUrl']?.toString()
+                  ?? '';
+
+    // ApiService.buildImageUrl gère : vide, relatif (/uploads/...), absolu
+    final imageUrl = ApiService.buildImageUrl(rawImage);
 
     return Offer(
       id:             json['id']?.toString() ?? '',
@@ -58,7 +63,7 @@ class Offer {
       location:       json['wilaya']?.toString()
                    ?? json['location']?.toString() ?? '',
       status:         (json['status']?.toString() ?? 'active').toLowerCase(),
-      imageUrl:       rawImage,
+      imageUrl:       imageUrl,
       description:    json['description']?.toString() ?? '',
       quantity:       json['quantity']?.toString() ?? '0',
       availableUntil: json['expireAt']?.toString()
@@ -344,11 +349,7 @@ class _MyOffersPageState extends State<MyOffersPage> {
                 bottomLeft: Radius.circular(10),
               ),
               child: offer.imageUrl.isNotEmpty
-                  ? Image.network(
-                      offer.imageUrl,
-                      width: 119, height: 170, fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _imagePlaceholder(),
-                    )
+                  ? AppNetworkImage(url: offer.imageUrl, width: 119, height: 170, fit: BoxFit.cover)
                   : _imagePlaceholder(),
             ),
             const SizedBox(width: 16),

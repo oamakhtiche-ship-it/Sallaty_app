@@ -14,19 +14,20 @@ import 'package:record/record.dart';
 import 'package:stomp_dart_client/stomp_dart_client.dart';
 
 import 'chat.dart' show kBaseUrl, kApiUrl;
+import 'merchant_profile_page.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MODEL — mirrors MessageDTO from the backend
+// MODEL
 // ─────────────────────────────────────────────────────────────────────────────
 class Message {
-  final String   id;           // server id (int cast to String for local use)
+  final String   id;
   final int      senderId;
   final int      receiverId;
   final String   conversationId;
-  final String   content;      // text content (or empty for media)
-  final String   type;         // 'text' | 'image' | 'audio'
-  final String?  audioUrl;     // local path or remote URL
-  final String?  imageUrl;     // local path or remote URL
+  final String   content;
+  final String   type;
+  final String?  audioUrl;
+  final String?  imageUrl;
   final DateTime createdAt;
   final bool     isRead;
 
@@ -36,14 +37,13 @@ class Message {
     required this.receiverId,
     required this.conversationId,
     required this.content,
-    this.type         = 'text',
+    this.type     = 'text',
     this.audioUrl,
     this.imageUrl,
     required this.createdAt,
-    this.isRead       = false,
+    this.isRead   = false,
   });
 
-  // Deserialize from GET /api/messages/conversation/{id} response
   factory Message.fromJson(Map<String, dynamic> j) {
     return Message(
       id:             j['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
@@ -51,7 +51,7 @@ class Message {
       receiverId:     (j['receiverId'] as num?)?.toInt() ?? 0,
       conversationId: j['conversationId']?.toString() ?? '',
       content:        j['content']?.toString()         ?? '',
-      type:           'text', // backend only stores text
+      type:           'text',
       createdAt: j['sentAt'] != null
           ? DateTime.tryParse(j['sentAt'].toString()) ?? DateTime.now()
           : DateTime.now(),
@@ -59,7 +59,6 @@ class Message {
     );
   }
 
-  // Serialize to send via STOMP /app/sendMessage
   Map<String, dynamic> toStompPayload(int receiverId) => {
     'receiverId': receiverId,
     'content':    content,
@@ -74,33 +73,37 @@ class MessageApiService {
 
   MessageApiService(String token)
       : _dio = Dio(BaseOptions(
-    baseUrl: kApiUrl,
-    headers: {'Authorization': 'Bearer $token'},
-    connectTimeout: const Duration(seconds: 10),
-    receiveTimeout: const Duration(seconds: 10),
-  ));
+          baseUrl: kApiUrl,
+          headers: {
+            'Authorization'             : 'Bearer $token',
+            'ngrok-skip-browser-warning': 'true',
+          },
+          connectTimeout: const Duration(seconds: 10),
+          receiveTimeout: const Duration(seconds: 10),
+        ));
 
-  /// GET /api/messages/conversation/{otherUserId}
   Future<List<Message>> getMessages(int otherUserId) async {
-    final res = await _dio.get('/messages/conversation/$otherUserId');
+    final res  = await _dio.get('/messages/conversation/$otherUserId');
     final list = res.data as List<dynamic>;
     return list.map((j) => Message.fromJson(j as Map<String, dynamic>)).toList();
   }
 
-  /// PUT /api/messages/read/{conversationId}
   Future<void> markAsRead(String conversationId) async {
     await _dio.put('/messages/read/$conversationId');
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// STOMP SERVICE
+// ─────────────────────────────────────────────────────────────────────────────
 class ChatStompService {
-  StompClient? _client;
-  bool _connected = false;
+  StompClient?    _client;
+  bool            _connected = false;
   StompUnsubscribe? _sub;
 
   void connect({
     required String token,
-    required String conversationId,          // e.g. "12:34"
+    required String conversationId,
     required void Function(Message) onMessage,
     VoidCallback? onConnected,
   }) {
@@ -109,14 +112,12 @@ class ChatStompService {
     _client = StompClient(
       config: StompConfig(
         url: wsUrl,
-        // Send JWT in the STOMP CONNECT frame (not in the URL)
-        stompConnectHeaders: {'Authorization': 'Bearer $token'},
-        webSocketConnectHeaders: {'Authorization': 'Bearer $token'},
+        stompConnectHeaders:    {'Authorization': 'Bearer $token'},
+        webSocketConnectHeaders:{'Authorization': 'Bearer $token'},
         onConnect: (frame) {
           _connected = true;
           onConnected?.call();
 
-          // Subscribe to the conversation topic
           _sub = _client!.subscribe(
             destination: '/topic/messages/$conversationId',
             callback: (frame) {
@@ -135,9 +136,9 @@ class ChatStompService {
           _connected = false;
           debugPrint('STOMP disconnected');
         },
-        onStompError: (frame) => debugPrint('STOMP error: ${frame.body}'),
-        onWebSocketError: (e) => debugPrint('WS error: $e'),
-        onWebSocketDone: () => _connected = false,
+        onStompError:    (frame) => debugPrint('STOMP error: ${frame.body}'),
+        onWebSocketError:(e)     => debugPrint('WS error: $e'),
+        onWebSocketDone: ()      => _connected = false,
         reconnectDelay: const Duration(seconds: 5),
       ),
     );
@@ -145,11 +146,7 @@ class ChatStompService {
     _client!.activate();
   }
 
-  /// Send a text message via STOMP /app/sendMessage
-  void send({
-    required int    receiverId,
-    required String content,
-  }) {
+  void send({required int receiverId, required String content}) {
     if (_client == null || !_connected) return;
     _client!.send(
       destination: '/app/sendMessage',
@@ -170,20 +167,12 @@ class ChatStompService {
 // CHAT ROOM SCREEN
 // ─────────────────────────────────────────────────────────────────────────────
 class ChatRoomScreen extends StatefulWidget {
-  /// The conversationId as computed by the backend: "min:max" (e.g. "12:34")
   final String conversationId;
-
-  /// Numeric id of the other participant
   final int    receiverId;
   final String receiverName;
   final String receiverAvatar;
-
-  /// Numeric id of the current user
   final int    myUserId;
   final String myToken;
-
-  /// Called by this screen whenever a new message is sent or received,
-  /// so the ChatListScreen can update its preview.
   final void Function(String text, DateTime time, bool isMe)? onNewMessage;
 
   const ChatRoomScreen({
@@ -209,14 +198,13 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   final FocusNode               _focus  = FocusNode();
   final ImagePicker             _picker = ImagePicker();
 
-  // Voice recording
   final AudioRecorder _recorder      = AudioRecorder();
   bool    _isRecording               = false;
   String? _recordingPath;
 
-  List<Message> _messages    = [];
-  bool          _isLoading   = true;
-  bool          _stompReady  = false;
+  List<Message> _messages   = [];
+  bool          _isLoading  = true;
+  bool          _stompReady = false;
 
   @override
   void initState() {
@@ -226,7 +214,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     _connectStomp();
   }
 
-  // ── Load REST history ─────────────────────────────────────────────────────
   Future<void> _loadHistory() async {
     try {
       final msgs = await _api.getMessages(widget.receiverId);
@@ -236,8 +223,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         _isLoading = false;
       });
       _scrollToBottom();
-
-      // Mark as read silently
       await _api.markAsRead(widget.conversationId);
     } catch (e) {
       debugPrint('History load error: $e');
@@ -246,7 +231,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     }
   }
 
-  // ── STOMP connection ──────────────────────────────────────────────────────
   void _connectStomp() {
     _stomp.connect(
       token:          widget.myToken,
@@ -255,7 +239,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         if (mounted) setState(() => _stompReady = true);
       },
       onMessage: (msg) {
-        // Ignore echo of our own messages (the server broadcasts to everyone)
         if (msg.senderId == widget.myUserId) return;
         if (!mounted) return;
         setState(() => _messages.add(msg));
@@ -265,14 +248,11 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     );
   }
 
-  // ── Send text ─────────────────────────────────────────────────────────────
   void _sendText() {
     final text = _ctrl.text.trim();
     if (text.isEmpty) return;
 
-    final now = DateTime.now();
-
-    // Optimistic UI — add message immediately
+    final now      = DateTime.now();
     final localMsg = Message(
       id:             now.millisecondsSinceEpoch.toString(),
       senderId:       widget.myUserId,
@@ -285,14 +265,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     setState(() => _messages.add(localMsg));
     _ctrl.clear();
     _scrollToBottom();
-
-    // Send over STOMP
     _stomp.send(receiverId: widget.receiverId, content: text);
-
     widget.onNewMessage?.call(text, now, true);
   }
 
-  // ── Voice recording ───────────────────────────────────────────────────────
   Future<void> _startRecording() async {
     final status = await Permission.microphone.request();
     if (!status.isGranted) {
@@ -308,7 +284,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     }
 
     final dir = await getTemporaryDirectory();
-    _recordingPath = '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+    _recordingPath =
+        '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
 
     await _recorder.start(
       const RecordConfig(encoder: AudioEncoder.aacLc, bitRate: 128000),
@@ -337,9 +314,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
     if (mounted) setState(() => _messages.add(localMsg));
     _scrollToBottom();
-
-    // TODO: upload audio to server once the backend endpoint is added
-    // Then send a text message like "[audio:{url}]" so the other side knows
     widget.onNewMessage?.call('🎤 Vocal', now, true);
   }
 
@@ -349,7 +323,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     _recordingPath = null;
   }
 
-  // ── Image picker ──────────────────────────────────────────────────────────
   void _showMediaPicker() {
     showModalBottomSheet(
       context: context,
@@ -379,12 +352,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
     if (mounted) setState(() => _messages.add(localMsg));
     _scrollToBottom();
-
-    // TODO: upload image to server once the backend endpoint is added
     widget.onNewMessage?.call('📷 Photo', now, true);
   }
 
-  // ── Scroll ────────────────────────────────────────────────────────────────
   void _scrollToBottom() {
     Future.delayed(const Duration(milliseconds: 150), () {
       if (_scroll.hasClients) {
@@ -397,6 +367,26 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     });
   }
 
+  // ── Ouvre MerchantProfilePage quand on clique sur le nom ──────────────────
+  void _openMerchantProfile() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MerchantProfilePage(
+          merchantId:   widget.receiverId,
+          merchantName: widget.receiverName,
+          shopName:     widget.receiverName,
+          avatarUrl:    widget.receiverAvatar,
+          wilaya:       '',
+          category:     '',
+          isVerified:   false,
+          isMerchant:   true,
+          onContact:    null,
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _stomp.disconnect();
@@ -407,7 +397,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     super.dispose();
   }
 
-  // ── Build ─────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     final initials = widget.receiverName.isNotEmpty
@@ -424,100 +413,113 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           icon: const Icon(Icons.arrow_back, color: Color(0xFF72A843)),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Row(
-          children: [
-            // Avatar with online dot
-            Stack(
-              children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: const Color(0xFFF5E6D0),
-                  backgroundImage: widget.receiverAvatar.isNotEmpty
-                      ? NetworkImage(widget.receiverAvatar)
-                      : null,
-                  child: widget.receiverAvatar.isEmpty
-                      ? Text(
-                    initials,
-                    style: const TextStyle(
-                      color: Color(0xFFB87333),
-                      fontWeight: FontWeight.bold,
+        title: GestureDetector(
+          // ✅ Clic sur le titre → ouvre le profil du marchand
+          onTap: _openMerchantProfile,
+          child: Row(
+            children: [
+              // Avatar
+              Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: const Color(0xFFF5E6D0),
+                    backgroundImage: widget.receiverAvatar.isNotEmpty
+                        ? NetworkImage(widget.receiverAvatar)
+                        : null,
+                    child: widget.receiverAvatar.isEmpty
+                        ? Text(
+                            initials,
+                            style: const TextStyle(
+                              color:      Color(0xFFB87333),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          )
+                        : null,
+                  ),
+                  // ✅ Point vert UNIQUEMENT si STOMP vraiment connecté
+                  if (_stompReady)
+                    Positioned(
+                      right:  0,
+                      bottom: 0,
+                      child: Container(
+                        width:  9,
+                        height: 9,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF72A843),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 1.5),
+                        ),
+                      ),
                     ),
-                  )
-                      : null,
-                ),
-                Positioned(
-                  right:  0,
-                  bottom: 0,
-                  child: Container(
-                    width:  9,
-                    height: 9,
-                    decoration: BoxDecoration(
-                      color: _stompReady ? const Color(0xFF72A843) : Colors.grey,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 1.5),
+                ],
+              ),
+              const SizedBox(width: 10),
+              // Nom — cliquable pour ouvrir le profil
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.receiverName,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily:  'Poppins',
+                        fontWeight:  FontWeight.w600,
+                        fontSize:    15,
+                        height:      1.0,
+                        color:       Color(0xFF1A1A1A),
+                      ),
                     ),
-                  ),
+                    // ✅ Sous-titre uniquement si vraiment connecté
+                    if (_stompReady)
+                      const Text(
+                        'En ligne',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color:    Color(0xFF72A843),
+                        ),
+                      ),
+                  ],
                 ),
-              ],
-            ),
-            const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.receiverName,
-                  style: const TextStyle(
-                    fontFamily:  'Poppins',
-                    fontWeight:  FontWeight.w500,
-                    fontSize:    16,
-                    height:      1.0,
-                    color:       Color(0xFF1A1A1A),
-                  ),
-                ),
-                Text(
-                  _stompReady ? 'Connecté' : 'Connexion…',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: _stompReady ? const Color(0xFF72A843) : Colors.grey,
-                  ),
-                ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
       body: Column(
         children: [
-          // ── Message list
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: Color(0xFF72A843)))
+                ? const Center(
+                    child: CircularProgressIndicator(color: Color(0xFF72A843)))
                 : GestureDetector(
-              onTap: () => FocusScope.of(context).unfocus(),
-              child: ListView.builder(
-                controller: _scroll,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                itemCount: _messages.length,
-                itemBuilder: (context, index) {
-                  final msg   = _messages[index];
-                  final isMe  = msg.senderId == widget.myUserId;
-                  final prev  = index > 0 ? _messages[index - 1] : null;
-                  final showAvatar = !isMe && (prev == null || prev.senderId == widget.myUserId);
+                    onTap: () => FocusScope.of(context).unfocus(),
+                    child: ListView.builder(
+                      controller: _scroll,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      itemCount: _messages.length,
+                      itemBuilder: (context, index) {
+                        final msg  = _messages[index];
+                        final isMe = msg.senderId == widget.myUserId;
+                        final prev = index > 0 ? _messages[index - 1] : null;
+                        final showAvatar = !isMe &&
+                            (prev == null ||
+                                prev.senderId == widget.myUserId);
 
-                  return _MessageItem(
-                    message:      msg,
-                    isMe:         isMe,
-                    showAvatar:   showAvatar,
-                    senderAvatar: widget.receiverAvatar,
-                    senderName:   widget.receiverName,
-                    myId:         widget.myUserId,
-                  );
-                },
-              ),
-            ),
+                        return _MessageItem(
+                          message:      msg,
+                          isMe:         isMe,
+                          showAvatar:   showAvatar,
+                          senderAvatar: widget.receiverAvatar,
+                          senderName:   widget.receiverName,
+                          myId:         widget.myUserId,
+                        );
+                      },
+                    ),
+                  ),
           ),
-
-          // ── Input bar
           _InputBar(
             controller:  _ctrl,
             focusNode:   _focus,
@@ -559,7 +561,8 @@ class _MessageItem extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.only(top: showAvatar ? 10 : 2, bottom: 2),
       child: Row(
-        mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment:
+            isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isMe)
@@ -567,29 +570,31 @@ class _MessageItem extends StatelessWidget {
               width: 36,
               child: showAvatar
                   ? CircleAvatar(
-                radius: 16,
-                backgroundColor: const Color(0xFFF5E6D0),
-                backgroundImage:
-                senderAvatar.isNotEmpty ? NetworkImage(senderAvatar) : null,
-                child: senderAvatar.isEmpty
-                    ? Text(
-                  senderName.isNotEmpty ? senderName[0].toUpperCase() : '?',
-                  style: const TextStyle(
-                    color: Color(0xFFB87333),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
-                )
-                    : null,
-              )
+                      radius: 16,
+                      backgroundColor: const Color(0xFFF5E6D0),
+                      backgroundImage: senderAvatar.isNotEmpty
+                          ? NetworkImage(senderAvatar)
+                          : null,
+                      child: senderAvatar.isEmpty
+                          ? Text(
+                              senderName.isNotEmpty
+                                  ? senderName[0].toUpperCase()
+                                  : '?',
+                              style: const TextStyle(
+                                color:      Color(0xFFB87333),
+                                fontWeight: FontWeight.bold,
+                                fontSize:   12,
+                              ),
+                            )
+                          : null,
+                    )
                   : const SizedBox(),
             ),
-
           if (!isMe) const SizedBox(width: 6),
-
           Flexible(
             child: Column(
-              crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              crossAxisAlignment:
+                  isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
               children: [
                 if (showAvatar && !isMe)
                   Padding(
@@ -608,7 +613,6 @@ class _MessageItem extends StatelessWidget {
               ],
             ),
           ),
-
           if (isMe) const SizedBox(width: 4),
         ],
       ),
@@ -641,9 +645,9 @@ class _BubbleContent extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color:    Colors.black.withValues(alpha:0.07),
+            color:      Colors.black.withValues(alpha: 0.07),
             blurRadius: 6,
-            offset:   const Offset(0, 2),
+            offset:     const Offset(0, 2),
           ),
         ],
       ),
@@ -710,22 +714,22 @@ class _AudioBubble extends StatefulWidget {
 }
 
 class _AudioBubbleState extends State<_AudioBubble> {
-  final AudioPlayer _player   = AudioPlayer();
-  bool     _playing           = false;
-  Duration _duration          = Duration.zero;
-  Duration _position          = Duration.zero;
+  final AudioPlayer _player = AudioPlayer();
+  bool     _playing         = false;
+  Duration _duration        = Duration.zero;
+  Duration _position        = Duration.zero;
 
   @override
   void initState() {
     super.initState();
     _player.onPlayerStateChanged.listen(
-            (s) { if (mounted) setState(() => _playing = s == PlayerState.playing); });
+        (s) { if (mounted) setState(() => _playing = s == PlayerState.playing); });
     _player.onDurationChanged.listen(
-            (d) { if (mounted) setState(() => _duration = d); });
+        (d) { if (mounted) setState(() => _duration = d); });
     _player.onPositionChanged.listen(
-            (p) { if (mounted) setState(() => _position = p); });
+        (p) { if (mounted) setState(() => _position = p); });
     _player.onPlayerComplete.listen(
-            (_) { if (mounted) setState(() => _position = Duration.zero); });
+        (_) { if (mounted) setState(() => _position = Duration.zero); });
   }
 
   Future<void> _toggle() async {
@@ -741,7 +745,7 @@ class _AudioBubbleState extends State<_AudioBubble> {
 
   String _fmt(Duration d) =>
       '${d.inMinutes.toString().padLeft(2, '0')}:'
-          '${(d.inSeconds % 60).toString().padLeft(2, '0')}';
+      '${(d.inSeconds % 60).toString().padLeft(2, '0')}';
 
   @override
   void dispose() { _player.dispose(); super.dispose(); }
@@ -763,8 +767,8 @@ class _AudioBubbleState extends State<_AudioBubble> {
               width:  34,
               height: 34,
               decoration: BoxDecoration(
-                color:  widget.isMe ? Colors.white24 : const Color(0xFF72A843),
-                shape:  BoxShape.circle,
+                color: widget.isMe ? Colors.white24 : const Color(0xFF72A843),
+                shape: BoxShape.circle,
               ),
               child: Icon(
                 _playing ? Icons.pause : Icons.play_arrow,
@@ -826,8 +830,8 @@ class _ImageBubble extends StatelessWidget {
       child: Stack(
         children: [
           isLocal
-              ? Image.file(File(imageUrl), width: 200, height: 160, fit: BoxFit.cover)
-              : Image.network(imageUrl,    width: 200, height: 160, fit: BoxFit.cover),
+              ? Image.file(File(imageUrl),   width: 200, height: 160, fit: BoxFit.cover)
+              : Image.network(imageUrl,      width: 200, height: 160, fit: BoxFit.cover),
           Positioned(
             bottom: 6,
             right:  8,
@@ -881,85 +885,86 @@ class _InputBar extends StatelessWidget {
       padding: EdgeInsets.only(left: 8, right: 8, top: 8, bottom: bottomPad),
       child: isRecording
           ? Row(
-        children: [
-          const SizedBox(width: 8),
-          const Icon(Icons.mic, color: Colors.red, size: 22),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              'Enregistrement… glisse pour annuler',
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-            ),
-          ),
-          GestureDetector(
-            onTap: onMicCancel,
-            child: const Icon(Icons.delete_outline, color: Colors.red),
-          ),
-          const SizedBox(width: 8),
-          GestureDetector(
-            onTap: onMicStop,
-            child: Container(
-              width:  42,
-              height: 42,
-              decoration: const BoxDecoration(
-                color: Color(0xFF72A843), shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
-            ),
-          ),
-        ],
-      )
-          : Row(
-        children: [
-          IconButton(
-            icon:        Icon(Icons.attach_file, color: Colors.grey.shade500),
-            onPressed:   onAttach,
-            padding:     EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-          ),
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color:        const Color(0xFFF5F5F0),
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: TextField(
-                controller:            controller,
-                focusNode:             focusNode,
-                maxLines:              4,
-                minLines:              1,
-                textCapitalization:    TextCapitalization.sentences,
-                decoration: InputDecoration(
-                  hintText:        'Tape quelque chose…',
-                  hintStyle:       TextStyle(color: Colors.grey.shade400, fontSize: 14),
-                  border:          InputBorder.none,
-                  contentPadding:  const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              children: [
+                const SizedBox(width: 8),
+                const Icon(Icons.mic, color: Colors.red, size: 22),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Enregistrement… glisse pour annuler',
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                  ),
                 ),
-                onSubmitted: (_) => onSend(),
-              ),
+                GestureDetector(
+                  onTap: onMicCancel,
+                  child: const Icon(Icons.delete_outline, color: Colors.red),
+                ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: onMicStop,
+                  child: Container(
+                    width:  42,
+                    height: 42,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF72A843), shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
+                  ),
+                ),
+              ],
+            )
+          : Row(
+              children: [
+                IconButton(
+                  icon:        Icon(Icons.attach_file, color: Colors.grey.shade500),
+                  onPressed:   onAttach,
+                  padding:     EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                ),
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color:        const Color(0xFFF5F5F0),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: TextField(
+                      controller:         controller,
+                      focusNode:          focusNode,
+                      maxLines:           4,
+                      minLines:           1,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: InputDecoration(
+                        hintText:       'Tape quelque chose…',
+                        hintStyle:      TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                        border:         InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 10),
+                      ),
+                      onSubmitted: (_) => onSend(),
+                    ),
+                  ),
+                ),
+                GestureDetector(
+                  onLongPressStart: (_) => onMicStart(),
+                  onLongPressEnd:   (_) => onMicStop(),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Icon(Icons.mic_none, color: Colors.grey.shade500, size: 28),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: onSend,
+                  child: Container(
+                    width:  42,
+                    height: 42,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF72A843), shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
+                  ),
+                ),
+              ],
             ),
-          ),
-          GestureDetector(
-            onLongPressStart: (_) => onMicStart(),
-            onLongPressEnd:   (_) => onMicStop(),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Icon(Icons.mic_none, color: Colors.grey.shade500, size: 28),
-            ),
-          ),
-          GestureDetector(
-            onTap: onSend,
-            child: Container(
-              width:  42,
-              height: 42,
-              decoration: const BoxDecoration(
-                color: Color(0xFF72A843), shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -1006,8 +1011,14 @@ class _MediaPickerSheet extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _MediaOption(icon: Icons.camera_alt_outlined, label: 'Prendre une photo', onTap: onCamera),
-              _MediaOption(icon: Icons.photo_library_outlined, label: 'Galerie',         onTap: onGallery),
+              _MediaOption(
+                  icon: Icons.camera_alt_outlined,
+                  label: 'Prendre une photo',
+                  onTap: onCamera),
+              _MediaOption(
+                  icon: Icons.photo_library_outlined,
+                  label: 'Galerie',
+                  onTap: onGallery),
             ],
           ),
         ],
@@ -1017,11 +1028,12 @@ class _MediaPickerSheet extends StatelessWidget {
 }
 
 class _MediaOption extends StatelessWidget {
-  final IconData icon;
-  final String   label;
+  final IconData     icon;
+  final String       label;
   final VoidCallback onTap;
 
-  const _MediaOption({required this.icon, required this.label, required this.onTap});
+  const _MediaOption(
+      {required this.icon, required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
