@@ -97,7 +97,7 @@ private Object[] getUserByContact(String contact) {
             "passe_word, profile_image, account_type, " +
             "account_state, nb_offer, nb_order, balance, date_time) " +
             "VALUES ('', '', :contact, :password, " +
-            "NULL, :accountType, 'NOT_VERIFIED', 0, 0, 0.0, :dateTime)")
+            "NULL, :accountType, 'ACTIVE', 0, 0, 0.0, :dateTime)")
             .setParameter("contact",     contact)
             .setParameter("password",    hashedPassword)
             .setParameter("accountType", accountType)
@@ -252,7 +252,7 @@ private Object[] getUserByContact(String contact) {
             "passe_word, profile_image, account_type, " +
             "account_state, nb_offer, nb_order, balance, date_time) " +
             "VALUES (:name, :surname, :contact, :password, " +
-            "NULL, :accountType, 'NOT_VERIFIED', 0, 0, 0.0, :dateTime)")
+            "NULL, :accountType, 'ACTIVE', 0, 0, 0.0, :dateTime)")
             .setParameter("name",        userService.adaptName(name))
             .setParameter("surname",     userService.adaptName(surname))
             .setParameter("contact",     contact)
