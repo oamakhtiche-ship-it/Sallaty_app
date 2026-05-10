@@ -155,6 +155,6 @@ public class MessageController {
             }
         }
         throw new RuntimeException(
-            "User non authentifié !");
+            "Unauthenticated user !");
     }
 }

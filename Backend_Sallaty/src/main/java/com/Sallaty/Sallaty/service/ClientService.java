@@ -41,7 +41,7 @@ public class ClientService {
     public ClientDTO getClientById(int clientId) {
         Object[] row = getClientRow(clientId);
         if (row == null)
-            throw new RuntimeException("Client non trouvé !");
+            throw new RuntimeException("Client not found !");
         return rowToDTO(row);
     }
 
@@ -51,7 +51,7 @@ public class ClientService {
     @Transactional
     public void updateNbReservations(int clientId) {
         if (getClientRow(clientId) == null)
-            throw new RuntimeException("Client non trouvé !");
+            throw new RuntimeException("Client not found !");
 
         entityManager.createNativeQuery(
             "UPDATE clients SET nb_reservations = " +
@@ -66,7 +66,7 @@ public class ClientService {
     @Transactional
     public void updateNbCancellations(int clientId) {
         if (getClientRow(clientId) == null)
-            throw new RuntimeException("Client non trouvé !");
+            throw new RuntimeException("Client not found !");
 
         entityManager.createNativeQuery(
             "UPDATE clients SET nb_cancellations = " +
@@ -81,10 +81,10 @@ public class ClientService {
     @Transactional
     public void updateTotalSpent(int clientId, double amount) {
         if (amount <= 0)
-            throw new IllegalArgumentException("Montant invalide !");
+            throw new IllegalArgumentException(" invalide Montant !");
 
         if (getClientRow(clientId) == null)
-            throw new RuntimeException("Client non trouvé !");
+            throw new RuntimeException("Client not found !");
 
         entityManager.createNativeQuery(
             "UPDATE clients SET total_spent = " +

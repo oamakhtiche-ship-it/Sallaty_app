@@ -11,8 +11,6 @@ import org.springframework.web.bind.annotation.RestController;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 
-import com.Sallaty.Sallaty.model.User;
-import com.Sallaty.Sallaty.repository.UserRepository;
 import com.Sallaty.Sallaty.security.CustomUserDetailsService;
 
 import java.util.ArrayList;
@@ -37,15 +35,9 @@ public class StatisticsController {
     @Autowired
     private CustomUserDetailsService userDetailsService;
 
-    @Autowired
-    private UserRepository userRepository;
-
     @PersistenceContext
     private EntityManager entityManager;
 
-    // ════════════════════════════════════════════════════════════
-    //  Check merchant role from the ROLES table (not accountType)
-    // ════════════════════════════════════════════════════════════
     private boolean isMerchantByRole(int userId) {
         try {
             Number count = (Number) entityManager.createNativeQuery(
@@ -68,13 +60,20 @@ public class StatisticsController {
     public ResponseEntity<Map<String, Object>> getMerchantStatistics(
             @AuthenticationPrincipal UserDetails userDetails) {
 
+        if (userDetails == null) {
+            log.warn("[Statistics] /marchand — userDetails is NULL");
+            return ResponseEntity.status(401)
+                    .body(Map.of("error", "Not authenticated"));
+        }
+        log.info("[Statistics] /marchand — user={}, roles={}",
+                userDetails.getUsername(),
+                userDetails.getAuthorities());
+
         try {
             int userId = userDetailsService.getUserIdByEmail(userDetails.getUsername());
             log.info("[Statistics] /marchand called for userId={}", userId);
 
-            // ✅ Check role from roles table, NOT user.getAccountType()
             if (!isMerchantByRole(userId)) {
-                log.warn("[Statistics] 403 — userId={} is not a merchant", userId);
                 return ResponseEntity.status(403)
                         .body(Map.of("error", "Access denied: not a merchant"));
             }
@@ -118,25 +117,28 @@ public class StatisticsController {
             stats.put("totalLikes",     totalLikes);
             stats.put("totalFollowers", totalFollowers);
 
-            // Revenue periods
+            // ✅ Revenue periods — PostgreSQL
             int revenueToday = 0, revenueWeek = 0, revenueMonth = 0;
             try {
                 revenueToday = queryInt(
                     "SELECT COALESCE(SUM(total_price),0) FROM reservations " +
                     "WHERE marchand_id=:id " +
                     "AND UPPER(status) IN ('CONFIRMED','PICKED','COMPLETED') " +
-                    "AND DATE(created_at)=CURDATE()", userId);
+                    "AND DATE(created_at) = CURRENT_DATE", userId);
+
                 revenueWeek = queryInt(
                     "SELECT COALESCE(SUM(total_price),0) FROM reservations " +
                     "WHERE marchand_id=:id " +
                     "AND UPPER(status) IN ('CONFIRMED','PICKED','COMPLETED') " +
-                    "AND YEARWEEK(created_at,1)=YEARWEEK(CURDATE(),1)", userId);
+                    "AND created_at >= DATE_TRUNC('week', CURRENT_DATE)", userId);
+
                 revenueMonth = queryInt(
                     "SELECT COALESCE(SUM(total_price),0) FROM reservations " +
                     "WHERE marchand_id=:id " +
                     "AND UPPER(status) IN ('CONFIRMED','PICKED','COMPLETED') " +
-                    "AND MONTH(created_at)=MONTH(CURDATE()) " +
-                    "AND YEAR(created_at)=YEAR(CURDATE())", userId);
+                    "AND EXTRACT(MONTH FROM created_at) = EXTRACT(MONTH FROM CURRENT_DATE) " +
+                    "AND EXTRACT(YEAR FROM created_at)  = EXTRACT(YEAR FROM CURRENT_DATE)", userId);
+
             } catch (Exception e) {
                 log.error("[Statistics] revenue periods: {}", e.getMessage());
             }
@@ -197,7 +199,8 @@ public class StatisticsController {
         } catch (Exception e) {
             log.error("[Statistics] getMerchantStatistics FATAL: {}", e.getMessage(), e);
             return ResponseEntity.status(500)
-                    .body(Map.of("error", e.getMessage() != null ? e.getMessage() : "Internal error"));
+                    .body(Map.of("error", e.getMessage() != null
+                            ? e.getMessage() : "Internal error"));
         }
     }
 
@@ -208,11 +211,14 @@ public class StatisticsController {
     public ResponseEntity<Map<String, Object>> getClientStatistics(
             @AuthenticationPrincipal UserDetails userDetails) {
 
+        if (userDetails == null) {
+            return ResponseEntity.status(401)
+                    .body(Map.of("error", "Not authenticated"));
+        }
+
         try {
             int userId = userDetailsService.getUserIdByEmail(userDetails.getUsername());
-            log.info("[Statistics] /client called for userId={}", userId);
 
-            // ✅ Merchants should use /marchand endpoint
             if (isMerchantByRole(userId)) {
                 return ResponseEntity.status(403)
                         .body(Map.of("error", "Access denied: merchants use /api/statistics/marchand"));
@@ -278,14 +284,14 @@ public class StatisticsController {
         } catch (Exception e) {
             log.error("[Statistics] getClientStatistics FATAL: {}", e.getMessage(), e);
             return ResponseEntity.status(500)
-                    .body(Map.of("error", e.getMessage() != null ? e.getMessage() : "Internal error"));
+                    .body(Map.of("error", e.getMessage() != null
+                            ? e.getMessage() : "Internal error"));
         }
     }
 
     // ════════════════════════════════════════════════════════════
-    //  PRIVATE HELPERS
+    //  HELPERS
     // ════════════════════════════════════════════════════════════
-
     private int queryInt(String sql, int id) {
         return ((Number) entityManager.createNativeQuery(sql)
                 .setParameter("id", id).getSingleResult()).intValue();
@@ -296,17 +302,19 @@ public class StatisticsController {
                 .setParameter("id", id).getSingleResult()).longValue();
     }
 
+    // ✅ buildRevenueChart — PostgreSQL
     private List<Integer> buildRevenueChart(int userId, String idColumn) {
         List<Integer> chart = new ArrayList<>(Collections.nCopies(30, 0));
         try {
             @SuppressWarnings("unchecked")
             List<Object[]> rows = entityManager.createNativeQuery(
-                "SELECT DAY(created_at), COALESCE(SUM(total_price),0) " +
+                "SELECT EXTRACT(DAY FROM created_at), " +
+                "COALESCE(SUM(total_price),0) " +
                 "FROM reservations WHERE " + idColumn + "=:id " +
                 "AND UPPER(status) IN ('CONFIRMED','PICKED','COMPLETED') " +
-                "AND MONTH(created_at)=MONTH(CURDATE()) " +
-                "AND YEAR(created_at)=YEAR(CURDATE()) " +
-                "GROUP BY DAY(created_at)")
+                "AND EXTRACT(MONTH FROM created_at) = EXTRACT(MONTH FROM CURRENT_DATE) " +
+                "AND EXTRACT(YEAR FROM created_at)  = EXTRACT(YEAR FROM CURRENT_DATE) " +
+                "GROUP BY EXTRACT(DAY FROM created_at)")
                 .setParameter("id", userId).getResultList();
             for (Object[] r : rows) {
                 int day = ((Number) r[0]).intValue();

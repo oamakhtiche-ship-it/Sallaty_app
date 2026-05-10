@@ -106,7 +106,7 @@ public class NotificationService {
             NotificationType type) {
 
         if (!userExists(userId))
-            throw new RuntimeException("User non trouvé !");
+            throw new RuntimeException("User not found !");
 
         if (!userSettingsService.isNotificationAllowed(
                 userId, type.name()))
@@ -174,9 +174,9 @@ public class NotificationService {
     public void sendWarningNotification(int userId) {
         sendNotification(
             userId,
-            "⚠️ Avertissement",
-            "Votre compte sera bloqué pour " +
-            "non-respect des conditions d'utilisation.",
+            "⚠️ Warning",
+            "Your account will be blocked for violating the terms of service. " +
+            "Violation of the terms of service.",
             NotificationType.WARNING);
     }
 
@@ -187,7 +187,7 @@ public class NotificationService {
             int userId) {
 
         if (!userExists(userId))
-            throw new RuntimeException("User non trouvé !");
+            throw new RuntimeException("User not found !");
 
         List<Notification> all = notificationRepository
             .findByUserIdOrderByCreatedAtDesc(userId);
@@ -235,7 +235,7 @@ public class NotificationService {
             .findById(notificationId)
             .orElseThrow(() ->
                 new RuntimeException(
-                    "Notification non trouvée !"));
+                    "Notification not found !"));
         notification.setRead(true);
         notificationRepository.save(notification);
     }
@@ -269,10 +269,10 @@ public class NotificationService {
             .findById(notificationId)
             .orElseThrow(() ->
                 new RuntimeException(
-                    "Notification non trouvée !"));
+                    "Notification not found !"));
 
         if (notification.getUserId() != userId)
-            throw new RuntimeException("Accès refusé !");
+            throw new RuntimeException("Access denied !");
 
         notificationRepository.delete(notification);
     }
@@ -282,7 +282,7 @@ public class NotificationService {
     // ═══════════════════════════════════════════════
     public void deleteAllNotifications(int userId) {
         if (!userExists(userId))
-            throw new RuntimeException("User non trouvé !");
+            throw new RuntimeException("User not found !");
         notificationRepository.deleteAllByUserId(userId);
     }
 

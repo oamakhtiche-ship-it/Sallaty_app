@@ -59,7 +59,7 @@ public class MarchandController {
 
             Map<String, Object> res = new HashMap<>();
             res.put("success", true);
-            res.put("message", "Demande envoyée ! En attente de vérification.");
+            res.put("message", "Request sent! Awaiting verification.");
             return ResponseEntity.ok(res);
 
         } catch (Exception e) {
@@ -190,7 +190,7 @@ public class MarchandController {
             marchandService.verifyMarchand(userId);
             Map<String, Object> res = new HashMap<>();
             res.put("success", true);
-            res.put("message", "Marchand vérifié ✅");
+            res.put("message", "Verified merchant ✅");
             return ResponseEntity.ok(res);
         } catch (Exception e) {
             Map<String, Object> err = new HashMap<>();
@@ -209,7 +209,7 @@ public class MarchandController {
             marchandService.cancelMarchand(userId);
             Map<String, Object> res = new HashMap<>();
             res.put("success", true);
-            res.put("message", "Marchand annulé ❌");
+            res.put("message", "Merchant canceled ❌");
             return ResponseEntity.ok(res);
         } catch (Exception e) {
             Map<String, Object> err = new HashMap<>();
@@ -228,7 +228,7 @@ public class MarchandController {
             marchandService.reactivateMarchand(userId);
             Map<String, Object> res = new HashMap<>();
             res.put("success", true);
-            res.put("message", "Marchand réactivé 🔄");
+            res.put("message", "Merchant reactivated 🔄");
             return ResponseEntity.ok(res);
         } catch (Exception e) {
             Map<String, Object> err = new HashMap<>();

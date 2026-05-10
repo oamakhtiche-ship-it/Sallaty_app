@@ -21,7 +21,7 @@ public class PasswordService {
 
         if (password == null || password.isEmpty())
             throw new IllegalArgumentException(
-                "Password obligatoire !");
+                " Password required!");
 
         return passwordEncoder.encode(password);
     }
@@ -36,7 +36,7 @@ public class PasswordService {
 
         if (rawPassword == null || rawPassword.isEmpty())
             throw new IllegalArgumentException(
-                "Password obligatoire !");
+                "Password required!");
 
         return passwordEncoder.matches(
             rawPassword, hashedPassword);

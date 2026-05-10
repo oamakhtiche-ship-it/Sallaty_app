@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'signup2.dart';
 import 'login1.dart';
-
-// ─── Base URL ─────────────────────────────────────────────────────────────────
-const _kBase = 'https://ethanol-hemstitch-strongbox.ngrok-free.dev';
+import 'apiservice.dart';
 
 class SignUp1 extends StatefulWidget {
   const SignUp1({super.key});
@@ -38,43 +34,26 @@ class _SignUp1State extends State<SignUp1> {
 
     setState(() => _isLoading = true);
     try {
-      final res = await http.post(
-        Uri.parse('$_kBase/api/auth/register/step1'),
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'ngrok-skip-browser-warning': 'true',
-        },
-        body: {
-          'contact':   _emailController.text.trim(),
-          'password':  _passwordController.text,
-          'password2': _confirmController.text,
-        },
+      final result = await ApiService.registerStep1(
+        email:     _emailController.text.trim(),
+        password:  _passwordController.text,
+        password2: _confirmController.text,
       );
 
       if (!mounted) return;
 
-      final body = jsonDecode(res.body) as Map<String, dynamic>;
-      final success = body['success'] == true;
-      final userId = body['userId'] as int?;
-
-      if (success && userId != null) {
+      if (result.success && result.data != null) {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => SignUp2(userId: userId),
+            builder: (_) => SignUp2(userId: result.data!),
           ),
         );
       } else {
-        final msg = body['message']?.toString() ?? 'Registration failed (${res.statusCode})';
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(msg)),
+          SnackBar(content: Text(result.errorMessage ?? 'Registration failed')),
         );
       }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Connection error: $e')),
-      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

@@ -3,7 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:intl/intl.dart';
 import 'conversation.dart';
 
-const String kBaseUrl = 'https://ethanol-hemstitch-strongbox.ngrok-free.dev';
+const String kBaseUrl = 'https://headstand-rosy-chlorine.ngrok-free.dev';
 const String kApiUrl  = '$kBaseUrl/api';
 
 // ─────────────────────────────────────────────────────────────────────────────

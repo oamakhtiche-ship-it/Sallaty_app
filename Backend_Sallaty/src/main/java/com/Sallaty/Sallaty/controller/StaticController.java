@@ -75,7 +75,7 @@ public class StaticController {
         staticService.updatePrivacyPolicy(content);
         return ResponseEntity.ok(Map.of(
             "success", true,
-            "message", "Privacy Policy mise à jour ✅"));
+            "message", "Privacy Policy updated ✅"));
     }
 
     @PutMapping("/about")
@@ -84,7 +84,7 @@ public class StaticController {
         staticService.updateAbout(content);
         return ResponseEntity.ok(Map.of(
             "success", true,
-            "message", "About mis à jour ✅"));
+            "message", "About updated ✅"));
     }
 
     @PutMapping("/terms")
@@ -93,7 +93,7 @@ public class StaticController {
         staticService.updateTermsConditions(content);
         return ResponseEntity.ok(Map.of(
             "success", true,
-            "message", "Terms mis à jour ✅"));
+            "message", "Terms updated ✅"));
     }
 
     // ═══════════════════════════════════════════════
@@ -134,6 +134,6 @@ public class StaticController {
         staticService.deleteFaq(category, questionId);
         return ResponseEntity.ok(Map.of(
             "success", true,
-            "message", "FAQ supprimée ✅"));
+            "message", "Removed FAQ✅"));
     }
 }

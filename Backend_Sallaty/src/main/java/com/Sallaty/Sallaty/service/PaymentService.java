@@ -70,52 +70,52 @@ public class PaymentService {
         Ordre ordre = ordreRepository
             .findById(request.getOrdreId())
             .orElseThrow(() ->
-                new RuntimeException("Ordre non trouvé !"));
+                new RuntimeException("Ordre not found !"));
 
         if (ordre.getClientId() != buyerId)
-            throw new RuntimeException("Pas autorisé !");
+            throw new RuntimeException("not allowed !");
 
         if (ordre.getStatus().equals(Ordre.CANCELLED))
-            throw new RuntimeException("Ordre annulé !");
+            throw new RuntimeException("Order canceled !");
 
         if (!ordre.getStatus().equals(Ordre.CONFIRMED))
-            throw new RuntimeException("Ordre doit être CONFIRMED !");
+            throw new RuntimeException("Order must be CONFIRMED !");
 
         if (paymentRepository.existsByOrdreId(request.getOrdreId()))
-            throw new RuntimeException("Ordre déjà payé !");
+            throw new RuntimeException("Order already paid!");
 
         if (request.getMethod() == null)
             throw new IllegalArgumentException(
-                "Méthode de paiement obligatoire !");
+                "Mandatory payment method !");
 
         // ✅ Validation carte
         if (request.getMethod() == PaymentMethod.CARD) {
             if (request.getCardNumber() == null ||
                 request.getCardNumber().isEmpty())
                 throw new IllegalArgumentException(
-                    "Numéro de carte obligatoire !");
+                    "Mandatory card number !");
             if (request.getExpiryDate() == null ||
                 request.getExpiryDate().isEmpty())
                 throw new IllegalArgumentException(
-                    "Date d'expiration obligatoire !");
+                    "Mandatory expiration date !");
             if (request.getCvv() == null ||
                 request.getCvv().isEmpty())
                 throw new IllegalArgumentException(
-                    "CVV obligatoire !");
+                    " CVV required!");
             if (request.getCardholderName() == null ||
                 request.getCardholderName().isEmpty())
                 throw new IllegalArgumentException(
-                    "Nom du titulaire obligatoire !");
+                    "Holder name required !");
         }
 
         // ✅ native SQL — pas de cast JPA
         Object[] buyer = getUserRow(buyerId);
         if (buyer == null)
-            throw new RuntimeException("User non trouvé !");
+            throw new RuntimeException("User not found !");
 
         String accountState = (String) buyer[1];
         if ("BLOCKED".equals(accountState))
-            throw new RuntimeException("Compte bloqué !");
+            throw new RuntimeException("Compte blocked !");
 
         BigDecimal transportCost = baseTransportCost
             .setScale(2, RoundingMode.HALF_UP);
@@ -149,18 +149,20 @@ public class PaymentService {
 
         notificationService.sendNotification(
             buyerId,
-            "Paiement réussi ✅",
-            "Votre paiement de " + amount +
-            " DA pour la commande #" +
+            "Payment successful ✅",
+            " Your payment of" + amount +
+            " DA for the order\r\n" + //
+                                "#" +
             request.getOrdreId() +
-            " a été effectué avec succès.",
+            " was carried out successfully.",
             NotificationType.PAYMENT_SUCCESS);
 
         notificationService.sendNotification(
             ordre.getMarchandId(),
-            "Paiement reçu 💰",
-            "Vous avez reçu un paiement de " +
-            marchandAmount + " DA pour la commande #" +
+            "Payment received\r\n" + //
+                                " 💰",
+            "You have received a payment of" +
+            marchandAmount + " DA for the order #" +
             request.getOrdreId() + ".",
             NotificationType.PAYMENT_RECEIVED);
 
@@ -175,7 +177,7 @@ public class PaymentService {
 
         if (totalPrice == null ||
             totalPrice.compareTo(BigDecimal.ZERO) <= 0)
-            throw new IllegalArgumentException("Prix invalide !");
+            throw new IllegalArgumentException("Invalid price!");
 
         return totalPrice
             .multiply(commissionRate)
@@ -189,7 +191,7 @@ public class PaymentService {
         Payment payment = paymentRepository
             .findByOrdreId(ordreId)
             .orElseThrow(() ->
-                new RuntimeException("Payment non trouvé !"));
+                new RuntimeException("Payment not found !"));
         return convertToDTO(payment);
     }
 

@@ -33,7 +33,7 @@ public class ProfileController {
     private int resolveUserId(UserDetails userDetails) {
         String contact = userDetails.getUsername();
         User user = userRepository.findByContact(contact)
-            .orElseThrow(() -> new RuntimeException("User non trouvé : " + contact));
+            .orElseThrow(() -> new RuntimeException("User not found : " + contact));
         return user.getId();
     }
 
@@ -88,7 +88,7 @@ public class ProfileController {
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("message", "OTP envoyé à " + newContact);
+        response.put("message", "OTP sent to " + newContact);
         return ResponseEntity.ok(response);
     }
 

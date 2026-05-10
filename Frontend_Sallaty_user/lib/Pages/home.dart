@@ -1,6 +1,3 @@
-
-
-
 import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'dart:async';
@@ -28,7 +25,8 @@ import 'conversation.dart';
 import 'package:saallatyy/l10n/app_localizations.dart';
 import 'all_offers.dart';
 import 'myorders.dart';
-import 'notifications.dart';
+import 'notifications.dart';                  
+import 'otifications.dart' as notif_inbox;       
 import 'statistics.dart';
 import 'apiservice.dart';
 import 'pending_verification.dart';
@@ -165,7 +163,11 @@ class _HomePageState extends State<HomePage> {
   // ── Profile Page ──────────────────────────────────────────────
   Widget _buildProfilePage() {
     final session = UserSession();
-    debugPrint('[Profile] photoUrl="${session.photoUrl}"');
+    assert(() {
+      final url = session.photoUrl;
+      debugPrint('[Profile] photoUrl="${(url != null && url.isNotEmpty) ? url : '<not set>'}"}');
+      return true;
+    }());
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -262,7 +264,7 @@ class _HomePageState extends State<HomePage> {
           _buildItem(Icons.privacy_tip_outlined, _t.privacy, context,
               const PrivacyPage()),
           _buildDivider(),
-          _buildItem(Icons.notifications_outlined, 'Notifications', context,
+          _buildItem(Icons.settings_outlined, 'Settings', context,
               const NotificationsPage()),
           _buildDivider(),
           _buildItem(
@@ -386,32 +388,18 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _logo() {
-    return ShaderMask(
-      shaderCallback: (bounds) => const LinearGradient(
-        colors: [Color(0xFF72A843), Color(0xFFA0CA09)],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ).createShader(bounds),
-      child: RichText(
-        text: TextSpan(
-          style: GoogleFonts.protestRiot(fontSize: 35, color: Colors.white),
-          children: const [
-            TextSpan(text: 'S'),
-            TextSpan(text: 'a'),
-            TextSpan(text: 'll'),
-            TextSpan(text: 'a'),
-            TextSpan(text: 'ty'),
-          ],
-        ),
-      ),
-    );
-  }
+  return Image.asset(
+    'assets/images/logohome.png',
+    height: 50,
+    fit: BoxFit.contain,
+  );
+}
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFAFFF7),
-      appBar: _page == 0 || (_page == 2 && !_isMerchant)
+      appBar: _page == 0 
           ? AppBar(
               backgroundColor: Colors.white,
               elevation: 0,
@@ -434,11 +422,8 @@ class _HomePageState extends State<HomePage> {
                     );
                   },
                 ),
-                IconButton(
-                  icon: const Icon(Icons.notifications_outlined,
-                      color: Color(0xFF8DC63F), size: 26),
-                  onPressed: () {},
-                ),
+               
+                notif_inbox.NotificationBadge(onTap: () {}),
                 const SizedBox(width: 8),
               ],
             )
@@ -481,6 +466,7 @@ class _HomePageState extends State<HomePage> {
                           onSuccess: () => _showSuccessAndGoToOffers(context))
                       : SizedBox(
                           height: MediaQuery.of(context).size.height * 0.75,
+                          
                           child: Center(
                             child: Container(
                               width: 300,
@@ -493,8 +479,11 @@ class _HomePageState extends State<HomePage> {
                                         .withValues(alpha: 0.3),
                                     width: 1.5),
                               ),
+                             
+                                
                               child: Column(
-                                mainAxisSize: MainAxisSize.min,
+                                 mainAxisSize: MainAxisSize.min,
+                              
                                 children: [
                                   Image.asset('assets/images/Bakery.png',
                                       height: 140),
@@ -566,6 +555,7 @@ class _HomePageState extends State<HomePage> {
                                   ),
                                 ],
                               ),
+                            
                             ),
                           ),
                         )

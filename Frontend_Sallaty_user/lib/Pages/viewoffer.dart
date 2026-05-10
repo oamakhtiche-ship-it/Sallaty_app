@@ -171,7 +171,7 @@ class _ViewOfferPageState extends State<ViewOfferPage> {
                             blurRadius: 10,
                             offset: const Offset(0, 4))],
                       ),
-                      child: Text('${widget.price} DA',
+                      child: Text('${widget.price} ',
                           style: GoogleFonts.poppins(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -236,7 +236,7 @@ class _ViewOfferPageState extends State<ViewOfferPage> {
                         const SizedBox(height: 14),
                         _DetailRow(icon: Icons.payments_outlined,
                             label: 'Price',
-                            value: '${widget.price} DA ',
+                            value: '${widget.price} ',
                             valueColor: const Color(0xFF72A843), bold: true),
                         const _RowDivider(),
                         _DetailRow(icon: Icons.info_outline,

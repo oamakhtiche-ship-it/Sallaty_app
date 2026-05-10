@@ -29,21 +29,22 @@ public class SubscribeService {
     public Subscribe subscribe(int userId, int marchandId) {
 
         if (!userRepository.existsById(userId))
-            throw new RuntimeException("User non trouvé !");
+            throw new RuntimeException("User not found !");
 
         if (!userRepository.existsById(marchandId))
-            throw new RuntimeException("Marchand non trouvé !");
+            throw new RuntimeException("Marchand not found !");
 
         if (subscribeRepository.existsByUserIdAndMarchandId(userId, marchandId))
-            throw new RuntimeException("Déjà abonné !");
+            throw new RuntimeException("Already subscribed\r\n" + //
+                                " !");
 
         Subscribe subscribe = new Subscribe(userId, marchandId);
         Subscribe saved = subscribeRepository.save(subscribe);
 
         notificationService.sendNotification(
             marchandId,
-            "Nouvel abonné 🔔",
-            "Un utilisateur vient de s'abonner à votre boutique.",
+            "New subscriber🔔",
+            "A user has just subscribed to your store.",
             NotificationType.NEW_SUBSCRIBER);
 
         return saved;
@@ -56,7 +57,7 @@ public class SubscribeService {
     public void unsubscribe(int userId, int marchandId) {
 
         if (!subscribeRepository.existsByUserIdAndMarchandId(userId, marchandId))
-            throw new RuntimeException("Abonnement non trouvé !");
+            throw new RuntimeException("Subscription not found!");
 
         subscribeRepository.deleteByUserIdAndMarchandId(userId, marchandId);
     }
@@ -67,7 +68,7 @@ public class SubscribeService {
     public List<Subscribe> getMySubscriptions(int userId) {
 
         if (!userRepository.existsById(userId))
-            throw new RuntimeException("User non trouvé !");
+            throw new RuntimeException("User not found !");
 
         return subscribeRepository.findByUserId(userId);
     }
@@ -78,7 +79,7 @@ public class SubscribeService {
     public List<Subscribe> getSubscribers(int marchandId) {
 
         if (!userRepository.existsById(marchandId))
-            throw new RuntimeException("Marchand non trouvé !");
+            throw new RuntimeException("Marchand not found !");
 
         return subscribeRepository.findByMarchandId(marchandId);
     }

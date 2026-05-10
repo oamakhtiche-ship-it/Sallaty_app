@@ -9,7 +9,7 @@ import 'network_image_widget.dart';
 import 'chat.dart';
 import 'conversation.dart';
 
-const String _kBaseUrl = 'https://ethanol-hemstitch-strongbox.ngrok-free.dev';
+const String _kBaseUrl = 'https://headstand-rosy-chlorine.ngrok-free.dev';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  MerchantProfilePage

@@ -52,7 +52,7 @@ public class ProfileService {
             .setParameter("id", userId)
             .getSingleResult();
         if (count == null || count == 0)
-            throw new RuntimeException("User non trouvé !");
+            throw new RuntimeException("User not found !");
     }
 
     // ═══════════════════════════════════════════════
@@ -68,7 +68,7 @@ public class ProfileService {
                 .setParameter("id", userId)
                 .getSingleResult();
         } catch (Exception e) {
-            throw new RuntimeException("User non trouvé !");
+            throw new RuntimeException("User not found !");
         }
     }
 
@@ -183,7 +183,7 @@ public class ProfileService {
         if (roleService.isMarchand(userId)) {
             Map<String, Object> marchandData = getMarchandData(userId);
             if (marchandData == null)
-                throw new RuntimeException("Marchand non trouvé !");
+                throw new RuntimeException("Marchand not found !");
             response.putAll(marchandData);
         }
 
@@ -209,7 +209,7 @@ public class ProfileService {
 
         if (surname != null && !surname.isEmpty()) {
             if (!userService.validateName(surname))
-                throw new IllegalArgumentException("Nom invalide !");
+                throw new IllegalArgumentException("Name invalide !");
             entityManager.createNativeQuery(
                 "UPDATE users SET surname = :val WHERE id = :userId")
                 .setParameter("val", userService.adaptName(surname))
@@ -219,7 +219,7 @@ public class ProfileService {
 
         if (name != null && !name.isEmpty()) {
             if (!userService.validateName(name))
-                throw new IllegalArgumentException("Prénom invalide !");
+                throw new IllegalArgumentException("surname invalide !");
             entityManager.createNativeQuery(
                 "UPDATE users SET first_name = :val WHERE id = :userId")
                 .setParameter("val", userService.adaptName(name))
@@ -246,7 +246,7 @@ public class ProfileService {
         // ✅ FIX : phone_number est dans users, pas dans marchands
         if (phoneNumber != null && !phoneNumber.isEmpty()) {
             if (!userService.validatePhoneNumberFormat(phoneNumber))
-                throw new IllegalArgumentException("Numéro invalide !");
+                throw new IllegalArgumentException("Numero invalide !");
             entityManager.createNativeQuery(
                 "UPDATE users SET phone_number = :val WHERE id = :userId")
                 .setParameter("val", phoneNumber)
@@ -265,7 +265,7 @@ public class ProfileService {
 
                 if (marchandRepository.existsByBusinessName(businessName) &&
                     !businessName.equals(currentName))
-                    throw new RuntimeException("Business name déjà utilisé !");
+                    throw new RuntimeException("Business name aleardy used !");
 
                 entityManager.createNativeQuery(
                     "UPDATE marchands SET business_name = :val WHERE user_id = :userId")
@@ -301,7 +301,7 @@ public class ProfileService {
 
         if (userService.checkContactExists(newContact) &&
             !newContact.equals(currentContact))
-            throw new RuntimeException("Contact déjà utilisé !");
+            throw new RuntimeException("Contact aleardy used!");
 
         if (!otpcodeService.verifyCode(userId, otpCode))
             throw new RuntimeException("Code OTP invalide !");
@@ -313,8 +313,8 @@ public class ProfileService {
             .executeUpdate();
 
         notificationService.sendNotification(
-            userId, "Contact modifié ✅",
-            "Votre contact a été modifié avec succès.",
+            userId, "Contact changed ✅",
+            "Your contact has been successfully modified.",
             NotificationType.ACCOUNT_UPDATE);
     }
 
@@ -333,13 +333,13 @@ public class ProfileService {
         String currentPassword = getUserPassword(userId);
 
         if (!passwordService.confirmPassword(oldPassword, currentPassword))
-            throw new RuntimeException("Ancien password incorrect !");
+            throw new RuntimeException("Old incorrect password !");
 
         if (!newPassword.equals(confirm))
-            throw new IllegalArgumentException("Passwords différents !");
+            throw new IllegalArgumentException("Different passwords !");
 
         if (passwordService.confirmPassword(newPassword, currentPassword))
-            throw new RuntimeException("Nouveau password identique à l'ancien !");
+            throw new RuntimeException("New password identical to the old one !");
 
         entityManager.createNativeQuery(
             "UPDATE users SET passe_word = :val WHERE id = :userId")
@@ -348,8 +348,8 @@ public class ProfileService {
             .executeUpdate();
 
         notificationService.sendNotification(
-            userId, "Mot de passe modifié ✅",
-            "Votre mot de passe a été modifié avec succès.",
+            userId, "Password changed ✅",
+            "Your password has been successfully changed..",
             NotificationType.ACCOUNT_UPDATE);
     }
 

@@ -30,7 +30,7 @@ public class UserSettingsService {
     public UserSettings getSettings(int userId) {
 
         if (!userRepository.existsById(userId))
-            throw new RuntimeException("User non trouvé !");
+            throw new RuntimeException("User not found !");
 
         return userSettingsRepository
             .findByUserId(userId)
@@ -150,7 +150,7 @@ public class UserSettingsService {
             !language.equals("AR") &&
             !language.equals("EN"))
             throw new RuntimeException(
-                "Langue invalide ! (FR / AR / EN)");
+                "Invalid language ! (FR / AR / EN)");
 
         UserSettings settings = getSettings(userId);
         settings.setLanguage(language);
@@ -193,7 +193,7 @@ public class UserSettingsService {
     public void deleteAccount(int userId) {
 
         if (!userRepository.existsById(userId))
-            throw new RuntimeException("User non trouvé !");
+            throw new RuntimeException("User not found !");
 
         // 1. Supprimer settings
         userSettingsRepository.deleteByUserId(userId);

@@ -42,7 +42,7 @@ class UserSession {
     final s = raw.trim();
     if (s.startsWith('http://') || s.startsWith('https://')) return s;
     // Relative path — prepend base URL
-    const base = 'https://ethanol-hemstitch-strongbox.ngrok-free.dev';
+    const base = 'https://headstand-rosy-chlorine.ngrok-free.dev';
     return '$base${s.startsWith('/') ? s : '/$s'}';
   }
 

@@ -50,7 +50,7 @@ public class SubscribeController {
         return ResponseEntity.ok(
             Map.of(
                 "success", true,
-                "message", "Abonné avec succès 🔔"));
+                "message", "Subscribed successfully 🔔"));
     }
 
     // ═══════════════════════════════════════════════
@@ -72,7 +72,7 @@ public class SubscribeController {
         return ResponseEntity.ok(
             Map.of(
                 "success", true,
-                "message", "Désabonné ✅"));
+                "message", "Unsubscribe ✅"));
     }
 
     // ═══════════════════════════════════════════════

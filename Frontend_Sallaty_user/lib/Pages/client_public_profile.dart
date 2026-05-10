@@ -19,6 +19,7 @@ class _ClientPublicProfilePageState
   bool _loading = true;
   Map<String, dynamic> _profile = {};
 
+ 
   @override
   void initState() {
     super.initState();

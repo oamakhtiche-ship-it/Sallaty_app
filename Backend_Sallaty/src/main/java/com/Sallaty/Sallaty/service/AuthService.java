@@ -31,22 +31,21 @@ public class AuthService {
     private EntityManager entityManager;
 
     // ═══════════════════════════════════════════════
-    //  HELPER — get user row
+    //  HELPERS
     // ═══════════════════════════════════════════════
-    // ✅ Requête corrigée — 8 colonnes (index 0 à 7)
-private Object[] getUserByContact(String contact) {
-    try {
-        return (Object[]) entityManager
-            .createNativeQuery(
-                "SELECT id, contact, passe_word, account_state, " +
-                "first_name, surname, wilaya, profile_image " +
-                "FROM users WHERE contact = :contact")
-            .setParameter("contact", contact)
-            .getSingleResult();
-    } catch (Exception e) {
-        return null;
+    private Object[] getUserByContact(String contact) {
+        try {
+            return (Object[]) entityManager
+                .createNativeQuery(
+                    "SELECT id, contact, passe_word, account_state, " +
+                    "first_name, surname, wilaya, profile_image " +
+                    "FROM users WHERE contact = :contact")
+                .setParameter("contact", contact)
+                .getSingleResult();
+        } catch (Exception e) {
+            return null;
+        }
     }
-}
 
     private Object[] getUserById(int userId) {
         try {
@@ -64,8 +63,6 @@ private Object[] getUserByContact(String contact) {
 
     // ═══════════════════════════════════════════════
     //  REGISTER STEP 1
-    //  POST /api/auth/register/step1
-    //  → valider contact + password → créer user NOT_VERIFIED → envoyer OTP
     // ═══════════════════════════════════════════════
     @Transactional
     public Map<String, Object> registerStep1(
@@ -73,22 +70,17 @@ private Object[] getUserByContact(String contact) {
             String password,
             String password2) {
 
-        // 1. Valider contact
         boolean isPhone = userService.validatePhoneNumberFormat(contact);
         boolean isEmail = userService.validateEmailFormat(contact);
 
         if (!isPhone && !isEmail)
-            throw new IllegalArgumentException("Contact invalide !");
-
-        // 2. Vérifier contact unique
+            throw new IllegalArgumentException("\r\n" + //
+                                "Invalid contact !");
         if (userService.checkContactExists(contact))
-            throw new RuntimeException("Contact déjà existant !");
-
-        // 3. Confirmer password
+            throw new RuntimeException("Contact already existing !");
         if (!userService.confirmPassword(password, password2))
-            throw new IllegalArgumentException("Passwords différents !");
+            throw new IllegalArgumentException("Different passwords !");
 
-        // 4. Créer user temporaire NOT_VERIFIED sans nom
         String accountType    = isPhone ? "PHONE" : "EMAIL";
         String hashedPassword = passwordService.hashPassword(password);
 
@@ -104,50 +96,44 @@ private Object[] getUserByContact(String contact) {
             .setParameter("dateTime",    LocalDateTime.now())
             .executeUpdate();
 
-        // 5. Récupérer userId
         Object[] newUser = getUserByContact(contact);
         int userId = ((Number) newUser[0]).intValue();
 
-        // 6. Envoyer OTP
         otpcodeService.sendVerifCodeSignup(contact, userId);
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("message", "OTP envoyé à " + contact);
+        response.put("message", "\r\n" + //
+                        "OTP sent to " + contact);
         response.put("userId",  userId);
         return response;
     }
 
     // ═══════════════════════════════════════════════
     //  REGISTER STEP 2
-    //  POST /api/auth/register/step2
-    //  → vérifier OTP
     // ═══════════════════════════════════════════════
     @Transactional
     public Map<String, Object> registerStep2(
             int userId,
             String otpCode) {
 
-        // 1. Vérifier user existe
         Object[] user = getUserById(userId);
         if (user == null)
-            throw new RuntimeException("User non trouvé !");
-
-        // 2. Vérifier OTP
+            throw new RuntimeException("User not found !");
         if (!otpcodeService.verifyCode(userId, otpCode))
-            throw new RuntimeException("Code OTP invalide !");
+            throw new RuntimeException("\r\n" + //
+                                "Invalid OTP code !");
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("message", "OTP vérifié !");
+        response.put("message", "\r\n" + //
+                        "OTP verified !");
         response.put("userId",  userId);
         return response;
     }
 
     // ═══════════════════════════════════════════════
     //  REGISTER STEP 3
-    //  POST /api/auth/register/step3
-    //  → ajouter name + surname → activer compte → retourner token
     // ═══════════════════════════════════════════════
     @Transactional
     public Map<String, Object> registerStep3(
@@ -155,17 +141,13 @@ private Object[] getUserByContact(String contact) {
             String name,
             String surname) {
 
-        // 1. Vérifier user existe
         Object[] user = getUserById(userId);
         if (user == null)
-            throw new RuntimeException("User non trouvé !");
-
-        // 2. Valider noms
+            throw new RuntimeException("User not found !");
         if (!userService.validateName(name) ||
             !userService.validateName(surname))
-            throw new IllegalArgumentException("Nom invalide !");
+            throw new IllegalArgumentException(" invalide name !");
 
-        // 3. Mettre à jour name + surname + activer compte
         entityManager.createNativeQuery(
             "UPDATE users SET " +
             "first_name = :name, " +
@@ -177,10 +159,8 @@ private Object[] getUserByContact(String contact) {
             .setParameter("id",      userId)
             .executeUpdate();
 
-        // 4. Assigner rôle CLIENT
         roleService.assignRole(userId, Role.CLIENT);
 
-        // 5. Créer entrée Client
         if (clientRepository.countByUserId(userId) == 0) {
             entityManager.createNativeQuery(
                 "INSERT INTO clients (user_id, nb_reservations, " +
@@ -190,18 +170,15 @@ private Object[] getUserByContact(String contact) {
                 .executeUpdate();
         }
 
-        // 6. Notification bienvenue
         notificationService.sendNotification(
             userId,
-            "Bienvenue sur Sallaty ! 🎉",
-            "Votre compte a été créé avec succès.",
+            "Welcome to Sallaty! 🎉",
+            "Your account has been successfully created.",
             NotificationType.WELCOME);
 
-        // 7. Récupérer contact pour générer token
         Object[] updatedUser = getUserById(userId);
         String contact = (String) updatedUser[1];
 
-        // 8. Générer tokens
         String accessToken  = jwtUtil.generateToken(contact);
         String refreshToken = jwtUtil.generateRefreshToken(contact);
 
@@ -213,7 +190,7 @@ private Object[] getUserByContact(String contact) {
 
         Map<String, Object> response = new HashMap<>();
         response.put("success",      true);
-        response.put("message",      "Inscription réussie !");
+        response.put("message",      "Successful registration !");
         response.put("userId",       userId);
         response.put("accessToken",  accessToken);
         response.put("refreshToken", refreshToken);
@@ -235,14 +212,16 @@ private Object[] getUserByContact(String contact) {
         boolean isPhone = userService.validatePhoneNumberFormat(contact);
         boolean isEmail = userService.validateEmailFormat(contact);
         if (!isPhone && !isEmail)
-            throw new IllegalArgumentException("Contact invalide !");
+            throw new IllegalArgumentException(" invalide Contact!");
         if (userService.checkContactExists(contact))
-            throw new RuntimeException("Contact déjà existant !");
+            throw new RuntimeException(
+"Contact already existing !");
         if (!userService.validateName(name) ||
             !userService.validateName(surname))
-            throw new IllegalArgumentException("Nom invalide !");
+            throw new IllegalArgumentException(" invalide name !");
         if (!userService.confirmPassword(password, password2))
-            throw new IllegalArgumentException("Passwords différents !");
+            throw new IllegalArgumentException("\r\n" + //
+                                "Different passwords !");
 
         String accountType    = isPhone ? "PHONE" : "EMAIL";
         String hashedPassword = passwordService.hashPassword(password);
@@ -275,10 +254,10 @@ private Object[] getUserByContact(String contact) {
 
         Object[] user = getUserById(userId);
         if (user == null)
-            throw new RuntimeException("User non trouvé !");
-
+            throw new RuntimeException("User not found !");
         if (!otpcodeService.verifyCode(userId, otpCode))
-            throw new RuntimeException("Code OTP invalide !");
+            throw new RuntimeException("\r\n" + //
+                                "Invalid OTP code !");
 
         entityManager.createNativeQuery(
             "UPDATE users SET account_state = 'ACTIVE' " +
@@ -312,120 +291,119 @@ private Object[] getUserByContact(String contact) {
 
         Object[] user = getUserById(userId);
         if (user == null)
-            throw new RuntimeException("User non trouvé !");
+            throw new RuntimeException("User not found !");
 
         String contact = (String) user[1];
         otpcodeService.sendVerifCodeSignup(contact, userId);
     }
 
     // ═══════════════════════════════════════════════
-    //  login()
+    //  LOGIN ✅
     // ═══════════════════════════════════════════════
-    // ═══════════════════════════════════════════════════════════════════
-// CORRECTION login() dans AuthService.java
-//
-// PROBLÈMES IDENTIFIÉS :
-//   1. Flutter cherche json['token']     → Backend envoyait 'accessToken'
-//   2. Flutter cherche json['name']      → Backend mettait dans un sous-objet 'user'
-//   3. Flutter cherche json['email']     → Backend envoyait 'contact'
-//   4. Flutter cherche json['isMerchant']→ Backend n'envoyait PAS ce champ
-//   5. Flutter cherche json['wilaya']    → Backend n'envoyait PAS ce champ
-//   6. Flutter cherche json['businessName'] → Backend n'envoyait PAS ce champ
-//   7. Flutter cherche json['businessType'] → Backend n'envoyait PAS ce champ
-//   8. Flutter cherche json['photoUrl']  → Backend n'envoyait PAS ce champ
-//
-// SOLUTION : Retourner une structure PLATE (flat) avec les bons noms de clés
-// ═══════════════════════════════════════════════════════════════════
-
-@Transactional
-public Map<String, Object> login(String contact, String password) {
-    try {
-        Object[] user = getUserByContact(contact);
-        if (user == null)
-            throw new RuntimeException("Contact non trouvé !");
-
-        int    userId       = ((Number) user[0]).intValue();
-        String userContact  = (String)  user[1];
-        String userPassword = (String)  user[2];
-        String accountState = (String)  user[3];
-        String firstName    = (String)  user[4];
-        String surname      = (String)  user[5];
-        String wilaya       = user[6] != null ? (String) user[6] : "";
-        String profileImage = user[7] != null ? (String) user[7] : "";
-
-        if (!passwordService.confirmPassword(password, userPassword))
-            throw new RuntimeException("Password incorrect !");
-        if ("BLOCKED".equals(accountState))
-            throw new RuntimeException("Compte bloqué !");
-        if ("NOT_VERIFIED".equals(accountState))
-            throw new RuntimeException("Compte non vérifié !");
-
-        // TEST 1 — does this line crash?
-        System.out.println(">>> STEP 1: user found, id=" + userId);
-
-        boolean isMerchant = false;
+    @Transactional
+    public Map<String, Object> login(String contact, String password) {
         try {
-            isMerchant = roleService.isMarchand(userId);
-            System.out.println(">>> STEP 2: isMerchant=" + isMerchant);
-        } catch (Exception e) {
-            System.err.println(">>> isMarchand FAILED: " + e.getMessage());
-            e.printStackTrace();
-        }
+            Object[] user = getUserByContact(contact);
+            if (user == null)
+                throw new RuntimeException("Contact not found !");
 
-        String businessName = "";
-        String businessType = "";
-        String phoneNumber  = "";
+            int    userId       = ((Number) user[0]).intValue();
+            String userContact  = (String)  user[1];
+            String userPassword = (String)  user[2];
+            String accountState = (String)  user[3];
+            String firstName    = (String)  user[4];
+            String surname      = (String)  user[5];
+            String wilaya       = user[6] != null ? (String) user[6] : "";
+            String profileImage = user[7] != null ? (String) user[7] : "";
 
-        if (isMerchant) {
+            if (!passwordService.confirmPassword(password, userPassword))
+                throw new RuntimeException("incorrect Password  !");
+            if ("BLOCKED".equals(accountState))
+                throw new RuntimeException("Blocked account !");
+            if ("NOT_VERIFIED".equals(accountState))
+                throw new RuntimeException("\r\n" + //
+ "Unverified account!");
+
+            System.out.println(">>> STEP 1: user found, id=" + userId);
+
+            // ✅ Vérification des rôles
+            boolean isMerchant = false;
+            boolean isAdmin    = false;
             try {
-                Object[] marchand = (Object[]) entityManager
-                    .createNativeQuery(
-                        "SELECT m.business_name, m.business_type, u.phone_number " +
-                        "FROM marchands m " +
-                        "JOIN users u ON u.id = m.user_id " +
-                        "WHERE m.user_id = :userId")
-                    .setParameter("userId", userId)
+                isMerchant = roleService.isMarchand(userId);
+
+                // ✅ Vérifier ADMIN dans la table roles
+                Number adminCount = (Number) entityManager.createNativeQuery(
+                    "SELECT COUNT(*) FROM roles " +
+                    "WHERE iduser = :id AND UPPER(rolename) = 'ADMIN'")
+                    .setParameter("id", userId)
                     .getSingleResult();
-                System.out.println(">>> STEP 3: marchand found");
-                if (marchand != null) {
-                    businessName = marchand[0] != null ? (String) marchand[0] : "";
-                    businessType = marchand[1] != null ? (String) marchand[1] : "";
-                    phoneNumber  = marchand[2] != null ? (String) marchand[2] : "";
-                }
+                isAdmin = adminCount.intValue() > 0;
+
+                System.out.println(">>> STEP 2: isMerchant=" + isMerchant +
+                                   ", isAdmin=" + isAdmin);
             } catch (Exception e) {
-                System.err.println(">>> marchand query FAILED: " + e.getMessage());
+                System.err.println(">>> role check FAILED: " + e.getMessage());
                 e.printStackTrace();
             }
+
+            // ✅ Infos marchand si applicable
+            String businessName = "";
+            String businessType = "";
+            String phoneNumber  = "";
+
+            if (isMerchant) {
+                try {
+                    Object[] marchand = (Object[]) entityManager
+                        .createNativeQuery(
+                            "SELECT m.business_name, m.business_type, u.phone_number " +
+                            "FROM marchands m " +
+                            "JOIN users u ON u.id = m.user_id " +
+                            "WHERE m.user_id = :userId")
+                        .setParameter("userId", userId)
+                        .getSingleResult();
+                    System.out.println(">>> STEP 3: marchand found");
+                    if (marchand != null) {
+                        businessName = marchand[0] != null ? (String) marchand[0] : "";
+                        businessType = marchand[1] != null ? (String) marchand[1] : "";
+                        phoneNumber  = marchand[2] != null ? (String) marchand[2] : "";
+                    }
+                } catch (Exception e) {
+                    System.err.println(">>> marchand query FAILED: " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }
+
+            System.out.println(">>> STEP 4: generating tokens");
+            String accessToken  = jwtUtil.generateToken(userContact);
+            String refreshToken = jwtUtil.generateRefreshToken(userContact);
+
+            System.out.println(">>> STEP 5: building response");
+            Map<String, Object> response = new HashMap<>();
+            response.put("token",        accessToken);
+            response.put("refreshToken", refreshToken);
+            response.put("id",           userId);
+            response.put("email",        userContact);
+            response.put("name",         firstName != null ? firstName : "");
+            response.put("surname",      surname   != null ? surname   : "");
+            response.put("wilaya",       wilaya);
+            response.put("isMerchant",   isMerchant);
+            response.put("isAdmin",      isAdmin);       // ✅ NOUVEAU
+            response.put("photoUrl",     profileImage);
+            response.put("businessName", businessName);
+            response.put("businessType", businessType);
+            response.put("phone",        phoneNumber);
+            response.put("accountState", accountState);
+
+            System.out.println(">>> STEP 6: done! isAdmin=" + isAdmin);
+            return response;
+
+        } catch (Exception e) {
+            System.err.println(">>> LOGIN CRASHED AT: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
         }
-
-        System.out.println(">>> STEP 4: generating tokens");
-        String accessToken  = jwtUtil.generateToken(userContact);
-        String refreshToken = jwtUtil.generateRefreshToken(userContact);
-
-        System.out.println(">>> STEP 5: building response");
-        Map<String, Object> response = new HashMap<>();
-        response.put("token",        accessToken);
-        response.put("refreshToken", refreshToken);
-        response.put("id",           userId);
-        response.put("email",        userContact);
-        response.put("name",         firstName != null ? firstName : "");
-        response.put("surname",      surname   != null ? surname   : "");
-        response.put("wilaya",       wilaya);
-        response.put("isMerchant",   isMerchant);
-        response.put("photoUrl",     profileImage);
-        response.put("businessName", businessName);
-        response.put("businessType", businessType);
-        response.put("phone",        phoneNumber);
-        response.put("accountState", accountState);
-        System.out.println(">>> STEP 6: done!");
-        return response;
-
-    } catch (Exception e) {
-        System.err.println(">>> LOGIN CRASHED AT: " + e.getMessage());
-        e.printStackTrace();
-        throw e;
     }
-}
 
     // ═══════════════════════════════════════════════
     //  refresh()
@@ -433,16 +411,16 @@ public Map<String, Object> login(String contact, String password) {
     public Map<String, Object> refresh(String refreshToken) {
 
         if (!jwtUtil.isTokenValid(refreshToken))
-            throw new RuntimeException("Refresh token invalide !");
-
+            throw new RuntimeException("Invalid refresh token!");
         if (jwtUtil.getTokenType(refreshToken) != JwtUtil.TokenType.REFRESH)
-            throw new RuntimeException("Token type invalide !");
+            throw new RuntimeException("\r\n" + //
+                                "Invalid token type !");
 
         String contact = jwtUtil.getEmail(refreshToken);
 
         Object[] user = getUserByContact(contact);
         if (user == null)
-            throw new RuntimeException("User non trouvé !");
+            throw new RuntimeException("User not found !");
 
         String newAccessToken = jwtUtil.generateToken(contact);
 
@@ -459,7 +437,7 @@ public Map<String, Object> login(String contact, String password) {
 
         Object[] user = getUserByContact(contact);
         if (user == null)
-            throw new RuntimeException("Contact non trouvé !");
+            throw new RuntimeException("Contact not found !");
 
         int userId = ((Number) user[0]).intValue();
         otpcodeService.sendVerifCodeLogin(contact, userId);
@@ -476,22 +454,21 @@ public Map<String, Object> login(String contact, String password) {
             String confirm) {
 
         if (!newPassword.equals(confirm))
-            throw new IllegalArgumentException("Passwords différents !");
+            throw new IllegalArgumentException("diffrents passwords !");
 
         Object[] user = getUserByContact(contact);
         if (user == null)
-            throw new RuntimeException("User non trouvé !");
+            throw new RuntimeException("Contact not found !");
 
         int userId = ((Number) user[0]).intValue();
 
         if (!otpcodeService.verifyCode(userId, otpCode))
-            throw new RuntimeException("Code OTP invalide !");
+            throw new RuntimeException("invalide otp code !");
 
         entityManager.createNativeQuery(
             "UPDATE users SET passe_word = :password WHERE id = :id")
             .setParameter("password", passwordService.hashPassword(newPassword))
-            .setParameter("id", userId)
+            .setParameter("id",       userId)
             .executeUpdate();
     }
-
 }

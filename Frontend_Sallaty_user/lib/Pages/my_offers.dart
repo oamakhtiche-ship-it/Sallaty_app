@@ -177,10 +177,13 @@ class _MyOffersPageState extends State<MyOffersPage> {
   // ── Empty state ───────────────────────────────────────────────────
   Widget _buildEmptyState() {
     return Center(
+      
       child: Padding(
+        
         padding: const EdgeInsets.only(top: 70),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
+          
           children: [
             Image.asset(
               'assets/images/myoffers.png',

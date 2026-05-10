@@ -109,7 +109,7 @@ public class AuthController {
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("message", "OTP envoyé à " + contact);
+        response.put("message", "OTP sent to " + contact);
         return ResponseEntity.ok(response);
     }
 
@@ -129,7 +129,7 @@ public class AuthController {
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("message", "Password réinitialisé !");
+        response.put("message", "Password reset !");
         return ResponseEntity.ok(response);
     }
 
@@ -146,7 +146,7 @@ public class AuthController {
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("message", "OTP renvoyé !");
+        response.put("message", "OTP returned !");
         return ResponseEntity.ok(response);
     }
 
@@ -166,7 +166,7 @@ public class AuthController {
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("message", "Inscription réussie !");
+        response.put("message", "Successful registration !");
         response.put("userId",  userId);
         return ResponseEntity.ok(response);
     }

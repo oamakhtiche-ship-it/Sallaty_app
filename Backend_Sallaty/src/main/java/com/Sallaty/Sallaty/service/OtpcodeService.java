@@ -54,11 +54,11 @@ public class OtpcodeService {
 
         if (contact == null || contact.isEmpty())
             throw new IllegalArgumentException(
-                "Contact obligatoire !");
+                "Mandatory contact !");
 
         if (!userRepository.existsById(userId))
             throw new RuntimeException(
-                "User non trouvé !");
+                "User not found!");
 
         // 1. Générer le code
         String code = generateOTP();
@@ -97,11 +97,11 @@ public class OtpcodeService {
 
         if (contact == null || contact.isEmpty())
             throw new IllegalArgumentException(
-                "Contact obligatoire !");
+                "Mandatory contact!");
 
         if (!userRepository.existsById(userId))
             throw new RuntimeException(
-                "User non trouvé !");
+                "User not found !");
 
         // 1. Générer le code
         String code = generateOTP();
@@ -144,16 +144,16 @@ public class OtpcodeService {
             .findByUserId(userId)
             .orElseThrow(() ->
                 new RuntimeException(
-                    "Code non trouvé !"));
+                    "Code not found !"));
 
         if (otp.isUtilise())
             throw new RuntimeException(
-                "Code déjà utilisé !");
+                "Code aleardy used!");
 
         if (otp.getExpireAt()
                 .isBefore(LocalDateTime.now()))
             throw new RuntimeException(
-                "Code expiré !");
+                "Code expired !");
 
         if (!otp.getCode().equals(code))
             return false;
@@ -178,8 +178,8 @@ public class OtpcodeService {
         Message.creator(
             new PhoneNumber(phone),
             new PhoneNumber(TWILIO_NUMBER),
-            "Sallaty : Votre code de vérification est "
-                + code + ". Valide 10 minutes."
+            "Sallaty: Your verification code is"
+                + code + ". Valid for 10 minutes."
         ).create();
     } catch (Exception e) {
         throw new RuntimeException(
@@ -196,17 +196,17 @@ public class OtpcodeService {
                 new SimpleMailMessage();
             message.setTo(email);
             message.setSubject(
-                "Code de vérification Sallaty");
+                "Sallaty verification code");
             message.setText(
-                "Bonjour,\n\n"
-                + "Votre code de vérification est :\n\n"
+                "Good morning,\n\n"
+                + "Your verification code is :\n\n"
                 + "     " + code + "\n\n"
-                + "Ce code expire dans 10 minutes.\n\n"
-                + "L'équipe Sallaty");
+                + "This code expires in 10 minutes.\n\n"
+                + "The Sallaty team");
             mailSender.send(message);
         } catch (Exception e) {
             throw new RuntimeException(
-                "Erreur envoi email : " + e.getMessage());
+                "Email sending error : " + e.getMessage());
         }
     }
 

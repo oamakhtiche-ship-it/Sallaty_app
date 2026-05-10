@@ -36,7 +36,7 @@ public class StaticService {
         return staticContentRepository
             .findByType(type)
             .map(StaticContent::getContent)
-            .orElse("Contenu non disponible.");
+            .orElse("Content not available.");
     }
 
     private void updateContent(String type, String newContent) {
@@ -98,11 +98,11 @@ public class StaticService {
 
         FaqItem item = faqItemRepository.findById(questionId)
             .orElseThrow(() ->
-                new RuntimeException("Question non trouvée !"));
+                new RuntimeException("Question not found !"));
 
         if (!item.getCategory().equals(category))
             throw new RuntimeException(
-                "Question n'appartient pas à cette catégorie !");
+                "Question does not belong to this category !");
 
         return item;
     }
@@ -115,13 +115,13 @@ public class StaticService {
                           String answer, int displayOrder) {
 
         if (!isValidCategory(category))
-            throw new IllegalArgumentException("Catégorie invalide !");
+            throw new IllegalArgumentException("Invalid category!");
 
         if (question == null || question.isEmpty())
-            throw new IllegalArgumentException("Question obligatoire !");
+            throw new IllegalArgumentException("Mandatory question!");
 
         if (answer == null || answer.isEmpty())
-            throw new IllegalArgumentException("Réponse obligatoire !");
+            throw new IllegalArgumentException("Mandatory response!");
 
         return faqItemRepository.save(
             new FaqItem(category, question, answer, displayOrder));
@@ -136,11 +136,11 @@ public class StaticService {
 
         FaqItem item = faqItemRepository.findById(questionId)
             .orElseThrow(() ->
-                new RuntimeException("Question non trouvée !"));
+                new RuntimeException("Question not found !"));
 
         if (!item.getCategory().equals(category))
             throw new RuntimeException(
-                "Question n'appartient pas à cette catégorie !");
+                "Question does not belong to this category !");
 
         if (question != null && !question.isEmpty())
             item.setQuestion(question);
@@ -159,11 +159,11 @@ public class StaticService {
 
         FaqItem item = faqItemRepository.findById(questionId)
             .orElseThrow(() ->
-                new RuntimeException("Question non trouvée !"));
+                new RuntimeException("Question not found !"));
 
         if (!item.getCategory().equals(category))
             throw new RuntimeException(
-                "Question n'appartient pas à cette catégorie !");
+                "Question does not belong to this category !");
 
         faqItemRepository.deleteById(questionId);
     }

@@ -3,13 +3,13 @@ package com.Sallaty.Sallaty.service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.LinkedHashMap;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.util.Map;
-import java.util.LinkedHashMap;
 
 import com.Sallaty.Sallaty.Dto.OrderLocationUpdateDTO;
 import com.Sallaty.Sallaty.Dto.OrdreClientDTO;
@@ -77,6 +77,8 @@ public class OrdreService {
 
     // ═══════════════════════════════════════════════
     //  createOrdre()
+    //  Le client peut réserver librement.
+    //  C'est le marchand qui gère le stock à la confirmation.
     // ═══════════════════════════════════════════════
     public Ordre createOrdre(
             int clientId,
@@ -84,18 +86,22 @@ public class OrdreService {
             int quantity) {
 
         if (quantity <= 0)
-            throw new IllegalArgumentException("Quantité invalide !");
+            throw new IllegalArgumentException("Invalid quantity!");
 
         Offre offre = offreRepository.findById(offreId)
             .orElseThrow(() ->
-                new RuntimeException("Offre non trouvée !"));
+                new RuntimeException("Offer not found !"));
+
+        if (offre.getMarchandId() == clientId)
+            throw new RuntimeException(
+                "You cannot book your own offer !");
 
         if (!offre.getStatus().equals(Offre.ACTIVE) &&
             !offre.getStatus().equals(Offre.RESERVED))
-            throw new RuntimeException("Offre non disponible !");
+            throw new RuntimeException("Offer not available!");
 
         if (offreService.isExpired(offre))
-            throw new RuntimeException("Offre expirée !");
+            throw new RuntimeException("Offer expired\" !");
 
         double totalPrice = offre.getDiscountPrice() > 0
             ? offre.getDiscountPrice() * quantity
@@ -114,13 +120,12 @@ public class OrdreService {
         clientService.updateNbReservations(clientId);
         offreService.incrementReservations(offreId);
 
-        // ✅ native SQL — pas de cast JPA
         String clientName = getClientName(clientId);
 
         notificationService.sendNotification(
             offre.getMarchandId(),
-            "Nouvelle réservation 📦",
-            clientName + " a réservé \"" +
+            "New reservation 📦",
+            clientName + " has reserved \"" +
             offre.getTitle() + "\" x" + quantity + ".",
             NotificationType.ORDER_CONFIRMED);
 
@@ -134,16 +139,16 @@ public class OrdreService {
 
         Ordre ordre = ordreRepository.findById(ordreId)
             .orElseThrow(() ->
-                new RuntimeException("Ordre non trouvé !"));
+                new RuntimeException("Order not found !"));
 
         if (ordre.getClientId() != clientId)
-            throw new RuntimeException("Pas autorisé !");
+            throw new RuntimeException("Not allowed !");
 
         if (ordre.getStatus().equals(Ordre.PICKED))
-            throw new RuntimeException("Ordre déjà récupéré !");
+            throw new RuntimeException("Order already collected!");
 
         if (ordre.getStatus().equals(Ordre.CANCELLED))
-            throw new RuntimeException("Ordre déjà annulé !");
+            throw new RuntimeException("Order already canceled !");
 
         if (ordre.getStatus().equals(Ordre.PENDING))
             offreService.decrementReservations(ordre.getOffreId());
@@ -159,7 +164,6 @@ public class OrdreService {
 
         clientService.updateNbCancellations(ordre.getClientId());
 
-        // ✅ native SQL — pas de cast JPA
         String clientName = getClientName(clientId);
 
         notificationService.sendNotification(
@@ -171,9 +175,9 @@ public class OrdreService {
 
         notificationService.sendNotification(
             clientId,
-            "Réservation annulée ✅",
-            "Votre réservation #" + ordreId +
-            " a été annulée avec succès.",
+            "Reservation canceled ✅",
+            "Your reservation#" + ordreId +
+            " was successfully cancelled.",
             NotificationType.ORDER_CANCELLED);
     }
 
@@ -184,13 +188,35 @@ public class OrdreService {
 
         Ordre ordre = ordreRepository.findById(ordreId)
             .orElseThrow(() ->
-                new RuntimeException("Ordre non trouvé !"));
+                new RuntimeException("Order not found  !"));
 
         if (ordre.getMarchandId() != marchandId)
-            throw new RuntimeException("Pas autorisé !");
+            throw new RuntimeException("not allowed !");
 
         if (!ordre.getStatus().equals(Ordre.PENDING))
-            throw new RuntimeException("Ordre doit être PENDING !");
+            throw new RuntimeException("Order must be PENDING !");
+
+        // ✅ Vérification stock au moment de la confirmation :
+        //    quantité déjà confirmée + cette commande ≤ quantité déclarée
+        Offre offre = offreRepository.findById(ordre.getOffreId())
+            .orElseThrow(() ->
+                new RuntimeException("Offer not found !"));
+
+        int alreadyConfirmedQty = ordreRepository
+            .findByOffreIdAndStatus(ordre.getOffreId(), Ordre.CONFIRMED)
+            .stream()
+            .mapToInt(Ordre::getQuantity)
+            .sum();
+
+        int remainingStock = offre.getQuantity() - alreadyConfirmedQty;
+
+        if (ordre.getQuantity() > remainingStock)
+            throw new RuntimeException(
+                "Insufficient stock to confirm! " +
+                "Remaining stock\r\n" + //
+                                        ": " + remainingStock +
+                ", request\r\n" + //
+                                        " : " + ordre.getQuantity());
 
         offreService.decrementQuantity(
             ordre.getOffreId(), ordre.getQuantity());
@@ -199,16 +225,14 @@ public class OrdreService {
         ordre.setConfirmedAt(LocalDateTime.now());
         ordreRepository.save(ordre);
 
-        Offre offre = offreRepository
-            .findById(ordre.getOffreId()).orElse(null);
-        String offreTitle = offre != null
+        String offreTitle = (offre != null && offre.getTitle() != null)
             ? offre.getTitle() : "votre offre";
 
         notificationService.sendNotification(
             ordre.getClientId(),
-            "Réservation confirmée ✅",
-            "Votre réservation pour \"" + offreTitle +
-            "\" a été confirmée. Vous pouvez maintenant payer.",
+            "Confirmed reservation ✅",
+            "Your reservation for \"" + offreTitle +
+            "\" Your order has been confirmed. You can now pay.",
             NotificationType.ORDER_CONFIRMED);
     }
 
@@ -219,16 +243,16 @@ public class OrdreService {
 
         Ordre ordre = ordreRepository.findById(ordreId)
             .orElseThrow(() ->
-                new RuntimeException("Ordre non trouvé !"));
+                new RuntimeException("Order not found !"));
 
         if (ordre.getClientId() != clientId)
-            throw new RuntimeException("Pas autorisé !");
+            throw new RuntimeException("not allowed !");
 
         if (!ordre.getStatus().equals(Ordre.CONFIRMED))
-            throw new RuntimeException("Ordre doit être CONFIRMED !");
+            throw new RuntimeException("Order must be CONFIRMED !");
 
         if (!paymentRepository.existsByOrdreId(ordreId))
-            throw new RuntimeException("Paiement non effectué !");
+            throw new RuntimeException("Payment not made !");
 
         ordre.setStatus(Ordre.PICKED);
         ordre.setCompletedAt(LocalDateTime.now());
@@ -242,16 +266,16 @@ public class OrdreService {
 
         notificationService.sendNotification(
             clientId,
-            "Commande récupérée ✅",
-            "Votre commande #" + ordreId +
-            " a été récupérée avec succès. Merci !",
+            "Order recovered ✅",
+            "Your order #" + ordreId +
+            " It has been successfully recovered. Thank you. !",
             NotificationType.ORDER_COMPLETED);
 
         notificationService.sendNotification(
             ordre.getMarchandId(),
-            "Commande complétée ✅",
-            "La commande #" + ordreId +
-            " a été récupérée par le client.",
+            "Order completed ✅",
+            "The order#" + ordreId +
+            " was retrieved by the client.",
             NotificationType.PAYMENT_RECEIVED);
     }
 
@@ -262,10 +286,10 @@ public class OrdreService {
 
         Ordre ordre = ordreRepository.findById(ordreId)
             .orElseThrow(() ->
-                new RuntimeException("Ordre non trouvé !"));
+                new RuntimeException("Order not found !"));
 
         if (ordre.getMarchandId() != marchandId)
-            throw new RuntimeException("Pas autorisé !");
+            throw new RuntimeException("not allowed !");
 
         offreService.decrementReservations(ordre.getOffreId());
 
@@ -279,9 +303,9 @@ public class OrdreService {
 
         notificationService.sendNotification(
             ordre.getClientId(),
-            "Réservation rejetée ❌",
-            "Votre réservation pour \"" + offreTitle +
-            "\" a été rejetée par le marchand.",
+            "Reservation rejected ❌",
+            "Your reservation for \"" + offreTitle +
+            "\" was rejected by the merchant.",
             NotificationType.ORDER_REJECTED);
     }
 
@@ -296,14 +320,14 @@ public class OrdreService {
         Ordre ordre = ordreRepository
             .findById(dto.getOrdreId())
             .orElseThrow(() ->
-                new RuntimeException("Ordre non trouvé !"));
+                new RuntimeException("Order not found !"));
 
         if (ordre.getMarchandId() != marchandId)
-            throw new RuntimeException("Pas autorisé !");
+            throw new RuntimeException("not allowed !");
 
         if (!ordre.getStatus().equals(Ordre.CONFIRMED))
             throw new RuntimeException(
-                "Tracking disponible seulement pour les ordres CONFIRMED !");
+                "Tracking available only for CONFIRMED orders !");
 
         LocalDateTime ts = dto.getTimestamp() != null
             ? dto.getTimestamp()
@@ -336,7 +360,7 @@ public class OrdreService {
     public List<OrderLocation> getLocationHistory(int ordreId) {
         ordreRepository.findById(ordreId)
             .orElseThrow(() ->
-                new RuntimeException("Ordre non trouvé !"));
+                new RuntimeException("Order not found !"));
         return locationRepository
             .findByOrdreIdOrderByTimestampDesc(ordreId);
     }
@@ -347,7 +371,7 @@ public class OrdreService {
     public Ordre getOrdreById(int ordreId) {
         return ordreRepository.findById(ordreId)
             .orElseThrow(() ->
-                new RuntimeException("Ordre non trouvé !"));
+                new RuntimeException("Order not found !"));
     }
 
     // ═══════════════════════════════════════════════
@@ -376,8 +400,7 @@ public class OrdreService {
     // ═══════════════════════════════════════════════
     //  getPendingOrdresByMarchand()
     // ═══════════════════════════════════════════════
-    public List<Ordre> getPendingOrdresByMarchand(
-            int marchandId) {
+    public List<Ordre> getPendingOrdresByMarchand(int marchandId) {
         return ordreRepository
             .findByMarchandIdAndStatus(marchandId, Ordre.PENDING);
     }
@@ -427,41 +450,40 @@ public class OrdreService {
     //  getReservationsByOffre() — native SQL
     // ═══════════════════════════════════════════════
     @SuppressWarnings("unchecked")
-public List<Map<String, Object>> getReservationsByOffre(int offreId) {
-    List<Ordre> ordres = ordreRepository.findByOffreId(offreId);
-    List<Map<String, Object>> result = new ArrayList<>();
+    public List<Map<String, Object>> getReservationsByOffre(int offreId) {
+        List<Ordre> ordres = ordreRepository.findByOffreId(offreId);
+        List<Map<String, Object>> result = new ArrayList<>();
 
-    for (Ordre o : ordres) {
-        Map<String, Object> map = new java.util.LinkedHashMap<>();
-        map.put("ordreId",    o.getId());
-        map.put("status",     o.getStatus());
-        map.put("totalPrice", o.getTotalPrice());
-        map.put("quantity",   o.getQuantity());
-        map.put("createdAt",  o.getCreatedAt());
-        map.put("clientId",   o.getClientId());   // ✅ AJOUTER
+        for (Ordre o : ordres) {
+            Map<String, Object> map = new LinkedHashMap<>();
+            map.put("ordreId",    o.getId());
+            map.put("status",     o.getStatus());
+            map.put("totalPrice", o.getTotalPrice());
+            map.put("quantity",   o.getQuantity());
+            map.put("createdAt",  o.getCreatedAt());
+            map.put("clientId",   o.getClientId());
 
-        // ✅ Infos client (firstName, surname, profilePhoto)
-        try {
-            Object[] user = (Object[]) entityManager
-                .createNativeQuery(
-                    "SELECT first_name, surname, profile_image " +
-                    "FROM users WHERE id = :id")
-                .setParameter("id", o.getClientId())
-                .getSingleResult();
+            try {
+                Object[] user = (Object[]) entityManager
+                    .createNativeQuery(
+                        "SELECT first_name, surname, profile_image " +
+                        "FROM users WHERE id = :id")
+                    .setParameter("id", o.getClientId())
+                    .getSingleResult();
 
-            map.put("firstName",    user[0] != null ? user[0] : "");
-            map.put("surname",      user[1] != null ? user[1] : "");
-            map.put("profilePhoto", user[2] != null ? user[2] : ""); // ✅
-        } catch (Exception e) {
-            map.put("firstName",    "Client");
-            map.put("surname",      "");
-            map.put("profilePhoto", "");
+                map.put("firstName",    user[0] != null ? user[0] : "");
+                map.put("surname",      user[1] != null ? user[1] : "");
+                map.put("profilePhoto", user[2] != null ? user[2] : "");
+            } catch (Exception e) {
+                map.put("firstName",    "Client");
+                map.put("surname",      "");
+                map.put("profilePhoto", "");
+            }
+
+            result.add(map);
         }
-
-        result.add(map);
+        return result;
     }
-    return result;
-}
 
     // ═══════════════════════════════════════════════
     //  convertToDTO()
@@ -487,66 +509,62 @@ public List<Map<String, Object>> getReservationsByOffre(int offreId) {
         return dto;
     }
 
-   // ═══════════════════════════════════════════════
-//  getOrdresByClientWithDetails() — CLIENT
-//  GET /api/ordres/client
-//  Retourne ordres + infos offre + marchand
-// ═══════════════════════════════════════════════
-@SuppressWarnings("unchecked")
-public List<java.util.Map<String, Object>> getOrdresByClientWithDetails(int clientId) {
+    // ═══════════════════════════════════════════════
+    //  getOrdresByClientWithDetails() — CLIENT
+    //  GET /api/ordres/client
+    //  Retourne ordres + infos offre + marchand
+    // ═══════════════════════════════════════════════
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> getOrdresByClientWithDetails(int clientId) {
 
-    List<Ordre> ordres = ordreRepository.findByClientId(clientId);
-    List<java.util.Map<String, Object>> result = new ArrayList<>();
+        List<Ordre> ordres = ordreRepository.findByClientId(clientId);
+        List<Map<String, Object>> result = new ArrayList<>();
 
-    for (Ordre o : ordres) {
-        java.util.Map<String, Object> map = new java.util.LinkedHashMap<>();
+        for (Ordre o : ordres) {
+            Map<String, Object> map = new LinkedHashMap<>();
 
-        // ── Infos ordre ──────────────────────────────────
-        map.put("ordreId",    o.getId());
-        map.put("status",     o.getStatus());
-        map.put("totalPrice", o.getTotalPrice());
-        map.put("quantity",   o.getQuantity());
-        map.put("createdAt",  o.getCreatedAt());
+            map.put("ordreId",    o.getId());
+            map.put("status",     o.getStatus());
+            map.put("totalPrice", o.getTotalPrice());
+            map.put("quantity",   o.getQuantity());
+            map.put("createdAt",  o.getCreatedAt());
 
-        // ── Infos offre (native SQL) ──────────────────────
-        try {
-            Object[] offre = (Object[]) entityManager
-                .createNativeQuery(
-                    "SELECT title, photo, wilaya, expire_at " +
-                    "FROM offres WHERE id = :id")
-                .setParameter("id", o.getOffreId())
-                .getSingleResult();
+            try {
+                Object[] offre = (Object[]) entityManager
+                    .createNativeQuery(
+                        "SELECT title, photo, wilaya, expire_at " +
+                        "FROM offres WHERE id = :id")
+                    .setParameter("id", o.getOffreId())
+                    .getSingleResult();
 
-            map.put("title",    offre[0] != null ? offre[0] : "");
-            map.put("photo",    offre[1] != null ? offre[1] : "");
-            map.put("wilaya",   offre[2] != null ? offre[2] : "");
-            map.put("expireAt", offre[3] != null ? offre[3].toString() : "");
-        } catch (Exception e) {
-            map.put("title",    "");
-            map.put("photo",    "");
-            map.put("wilaya",   "");
-            map.put("expireAt", "");
+                map.put("title",    offre[0] != null ? offre[0] : "");
+                map.put("photo",    offre[1] != null ? offre[1] : "");
+                map.put("wilaya",   offre[2] != null ? offre[2] : "");
+                map.put("expireAt", offre[3] != null ? offre[3].toString() : "");
+            } catch (Exception e) {
+                map.put("title",    "");
+                map.put("photo",    "");
+                map.put("wilaya",   "");
+                map.put("expireAt", "");
+            }
+
+            try {
+                Object[] marchand = (Object[]) entityManager
+                    .createNativeQuery(
+                        "SELECT business_name " +
+                        "FROM marchands WHERE user_id = :id")
+                    .setParameter("id", o.getMarchandId())
+                    .getSingleResult();
+
+                map.put("merchantName",
+                    marchand[0] != null ? marchand[0] : "");
+            } catch (Exception e) {
+                map.put("merchantName", "");
+            }
+
+            result.add(map);
         }
 
-        // ── Infos marchand (native SQL) ───────────────────
-        try {
-            Object[] marchand = (Object[]) entityManager
-                .createNativeQuery(
-                    "SELECT business_name " +
-                    "FROM marchands WHERE user_id = :id")
-                .setParameter("id", o.getMarchandId())
-                .getSingleResult();
-
-            map.put("merchantName",
-                marchand[0] != null ? marchand[0] : "");
-        } catch (Exception e) {
-            map.put("merchantName", "");
-        }
-
-        result.add(map);
+        return result;
     }
-
-    return result;
-} // GET /api/ordres/client — retourne les ordres avec infos offre + marchand
-
 }

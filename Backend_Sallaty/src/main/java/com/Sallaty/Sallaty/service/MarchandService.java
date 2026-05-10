@@ -113,16 +113,17 @@ public class MarchandService {
             String tradeRegister) {
 
         if (!userRepository.existsById(userId))
-            throw new RuntimeException("User non trouvé !");
+            throw new RuntimeException("User not found !");
 
         if (marchandRepository.existsByBusinessName(shopName))
-            throw new RuntimeException("Shop name déjà utilisé !");
+            throw new RuntimeException("Shop name already used!");
 
         if (tradeRegister == null || tradeRegister.trim().isEmpty())
-            throw new IllegalArgumentException("Trade register obligatoire !");
+            throw new IllegalArgumentException("Trade register required !");
 
         if (!validatePhoneNumberFormat(phoneNumber))
-            throw new IllegalArgumentException("Numéro de téléphone invalide !");
+            throw new IllegalArgumentException("\r\n" + //
+                                "Invalid phone number !");
 
         // phone_number et wilaya → dans users
         entityManager.createNativeQuery(
@@ -150,8 +151,10 @@ public class MarchandService {
         for (User admin : admins) {
             notificationService.sendNotification(
                 admin.getId(),
-                "Nouvelle demande marchand 🏪",
-                "Le marchand \"" + shopName + "\" attend votre vérification.",
+                "\r\n" + //
+                                        "New merchant request 🏪",
+                "Le marchand \"" + shopName + "\" \r\n" + //
+                                        "waiting for your verification.",
                 NotificationType.NEW_MARCHAND_REQUEST);
         }
     }
@@ -170,7 +173,7 @@ public class MarchandService {
     public MarchandDTO getMarchandById(int userId) {
         Object[] row = getMarchandRow(userId);
         if (row == null)
-            throw new RuntimeException("Marchand non trouvé : " + userId);
+            throw new RuntimeException("Merchant not found : " + userId);
         return rowToDTO(row);
     }
 
@@ -220,7 +223,7 @@ public class MarchandService {
     public String getTradeRegister(int userId) {
         Object[] row = getMarchandRow(userId);
         if (row == null)
-            throw new RuntimeException("Marchand non trouvé : " + userId);
+            throw new RuntimeException("Merchant not found: " + userId);
         return (String) row[4];
     }
 
@@ -231,10 +234,11 @@ public class MarchandService {
     public void verifyMarchand(int userId) {
         Object[] row = getMarchandRow(userId);
         if (row == null)
-            throw new RuntimeException("Marchand non trouvé : " + userId);
+            throw new RuntimeException("Merchant not found: " + userId);
 
         if (StatusMarchand.VERIFIED.name().equals((String) row[5]))
-            throw new RuntimeException("Marchand déjà vérifié !");
+            throw new RuntimeException("\r\n" + //
+                                "Already verified merchant !");
 
         entityManager.createNativeQuery(
             "UPDATE marchands SET status_marchand = 'VERIFIED' WHERE user_id = :userId")
@@ -244,8 +248,11 @@ public class MarchandService {
         roleService.updateRole(userId, "MARCHANT");
 
         notificationService.sendNotification(
-            userId, "Compte vérifié ✅",
-            "Votre compte marchand \"" + row[2] + "\" a été vérifié !",
+            userId, "\r\n" + //
+                                "Verified account ✅",
+            "\r\n" + //
+                                "Your merchant account \"" + row[2] + "\" \r\n" + //
+                                                                        "has been verified!",
             NotificationType.MARCHAND_VERIFIED);
     }
 
@@ -256,10 +263,11 @@ public class MarchandService {
     public void cancelMarchand(int userId) {
         Object[] row = getMarchandRow(userId);
         if (row == null)
-            throw new RuntimeException("Marchand non trouvé : " + userId);
+            throw new RuntimeException("Marchand not found : " + userId);
 
         if (StatusMarchand.CANCELLED.name().equals((String) row[5]))
-            throw new RuntimeException("Marchand déjà annulé !");
+            throw new RuntimeException("\r\n" + //
+                                "Merchant already canceled!");
 
         entityManager.createNativeQuery(
             "UPDATE marchands SET status_marchand = 'CANCELLED' WHERE user_id = :userId")
@@ -269,8 +277,10 @@ public class MarchandService {
         roleService.updateRole(userId, "CLIENT");
 
         notificationService.sendNotification(
-            userId, "Demande refusée ❌",
-            "Votre demande marchand \"" + row[2] + "\" a été refusée.",
+            userId, "\r\n" + //
+                                "Request refused ❌",
+            "Your merchant request \"" + row[2] + "\" \r\n" + //
+                                "was refused.",
             NotificationType.MARCHAND_CANCELLED);
     }
 
@@ -281,10 +291,11 @@ public class MarchandService {
     public void reactivateMarchand(int userId) {
         Object[] row = getMarchandRow(userId);
         if (row == null)
-            throw new RuntimeException("Marchand non trouvé : " + userId);
+            throw new RuntimeException("Marchand not found : " + userId);
 
         if (StatusMarchand.PENDING.name().equals((String) row[5]))
-            throw new RuntimeException("Marchand déjà en attente !");
+            throw new RuntimeException("\r\n" + //
+                                "Merchant already waiting !");
 
         entityManager.createNativeQuery(
             "UPDATE marchands SET status_marchand = 'PENDING' WHERE user_id = :userId")
@@ -294,8 +305,9 @@ public class MarchandService {
         roleService.updateRole(userId, "CLIENT");
 
         notificationService.sendNotification(
-            userId, "Compte réactivé 🔄",
-            "Votre compte marchand \"" + row[2] + "\" a été réactivé.",
+            userId, "Account reactivated🔄",
+            "Your merchant account \"" + row[2] + "\" \r\n" + //
+                                "has been reactivated.",
             NotificationType.MARCHAND_REACTIVATED);
     }
 
@@ -305,10 +317,10 @@ public class MarchandService {
     @Transactional
     public void updateRevenue(int userId, double amount) {
         if (getMarchandRow(userId) == null)
-            throw new RuntimeException("Marchand non trouvé : " + userId);
+            throw new RuntimeException("Marchand not found : " + userId);
 
         if (amount <= 0)
-            throw new IllegalArgumentException("Montant invalide : " + amount);
+            throw new IllegalArgumentException(" invalide  Montant: " + amount);
 
         entityManager.createNativeQuery(
             "UPDATE marchands SET revenue = revenue + :amount WHERE user_id = :userId")
@@ -323,7 +335,7 @@ public class MarchandService {
     @Transactional
     public void updateNbFollowers(int userId, int count) {
         if (getMarchandRow(userId) == null)
-            throw new RuntimeException("Marchand non trouvé : " + userId);
+            throw new RuntimeException("Marchand not found : " + userId);
 
         entityManager.createNativeQuery(
             "UPDATE marchands SET nb_followers = :count WHERE user_id = :userId")

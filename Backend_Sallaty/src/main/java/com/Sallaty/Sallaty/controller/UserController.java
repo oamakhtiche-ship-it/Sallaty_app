@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -121,7 +122,7 @@ public class UserController {
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("message", "Profil mis à jour !");
+        response.put("message", "Updated profile !");
         return ResponseEntity.ok(response);
     }
 
@@ -139,7 +140,7 @@ public class UserController {
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("message", "Image supprimée !");
+        response.put("message", "Image deleted !");
         return ResponseEntity.ok(response);
     }
 
@@ -157,7 +158,7 @@ public class UserController {
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("message", "Déconnexion réussie !");
+        response.put("message", "Logout successful !");
         return ResponseEntity.ok(response);
     }
 
@@ -192,7 +193,7 @@ public class UserController {
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("message", "Solde rechargé !");
+        response.put("message", "Balance recharged !");
         return ResponseEntity.ok(response);
     }
 
@@ -211,7 +212,7 @@ public class UserController {
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("message", "Device token mis à jour !");
+        response.put("message", "Device token updated!");
         return ResponseEntity.ok(response);
     }
 
@@ -226,7 +227,7 @@ public class UserController {
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("message", "User bloqué !");
+        response.put("message", "User blocked !");
         return ResponseEntity.ok(response);
     }
 
@@ -241,7 +242,7 @@ public class UserController {
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("message", "User débloqué !");
+        response.put("message", "User unblocked !");
         return ResponseEntity.ok(response);
     }
 
@@ -446,6 +447,20 @@ public ResponseEntity<?> getStatistics(
     }
 
     return ResponseEntity.ok(stats);
+}
+
+@PostMapping("/api/users/device-token")
+public ResponseEntity<?> saveDeviceToken(
+        @RequestBody Map<String, String> body,
+        @AuthenticationPrincipal UserDetails userDetails) {
+    int userId = userDetailsService.getUserIdByEmail(userDetails.getUsername());
+    // UPDATE users SET device_token = ? WHERE id = ?
+    entityManager.createNativeQuery(
+        "UPDATE users SET device_token = :token WHERE id = :id")
+        .setParameter("token", body.get("deviceToken"))
+        .setParameter("id", userId)
+        .executeUpdate();
+    return ResponseEntity.ok(Map.of("success", true));
 }
 }
     

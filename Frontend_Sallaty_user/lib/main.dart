@@ -1,29 +1,46 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'l10n/app_localizations.dart';
 import 'Pages/splashscreen.dart';
 import 'Pages/usersession.dart';
 import 'Pages/apiservice.dart';
+import 'Pages/fcm_token_service.dart';   // ← fixed: no spaces
+import 'Pages/otifications.dart';
 
 final ValueNotifier<Locale> appLocale = ValueNotifier(const Locale('en'));
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Charger la session
+
+  // 1. Initialize Firebase WITH options (required for web)
+  try {
+    await Firebase.initializeApp(
+  options: const FirebaseOptions(
+    apiKey:            "AIzaSy...",  // ← récupère depuis google-services.json
+    authDomain:        "sallaty-97a49.firebaseapp.com",
+    projectId:         "sallaty-97a49",
+    storageBucket:     "sallaty-97a49.firebasestorage.app",
+    messagingSenderId: "965359190240",
+    appId:             "1:965359190240:android:c74bb28e9c92fb5e085085",
+  ),
+);
+    // 2. Initialize FCM
+    await FcmTokenService.init();
+  } catch (e) {
+    debugPrint('Firebase init error: $e');
+  }
+
+  // 3. Load user session
   final userSession = UserSession();
   await userSession.load();
-  
-  print('=== MAIN: isLoggedIn=${userSession.isLoggedIn}');
-  print('=== MAIN: isMerchant=${userSession.isMerchant}');
-  
-  // Rafraîchir le profil si connecté
+
+  // 4. Refresh profile + upload FCM token if already logged in
   if (userSession.isLoggedIn) {
-    final refreshed = await ApiService.refreshProfile();
-    print('=== MAIN: refreshProfile success=$refreshed');
-    print('=== MAIN: isMerchant après refresh=${UserSession().isMerchant}');
+    await ApiService.refreshProfile();
+    FcmTokenService.uploadToken(); // background, no await
   }
-  
+
   runApp(const MyApp());
 }
 

@@ -438,24 +438,7 @@ class _EmptyState extends StatelessWidget {
                   height: 1.5),
             ),
             const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: onBrowse,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _kPrimary500,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20)),
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 14),
-                ),
-                child: const Text('Browse Offers',
-                    style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.white)),
-              ),
-            ),
+         
           ],
         ),
       ),

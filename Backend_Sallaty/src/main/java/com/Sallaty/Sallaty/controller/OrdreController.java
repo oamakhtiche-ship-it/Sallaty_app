@@ -79,7 +79,7 @@ public class OrdreController {
         return ResponseEntity.ok(
             Map.of(
                 "success", true,
-                "message", "Ordre annulé ❌"));
+                "message", "Order canceled ❌"));
     }
 
     // ═══════════════════════════════════════════════
@@ -100,7 +100,7 @@ public class OrdreController {
         return ResponseEntity.ok(
             Map.of(
                 "success", true,
-                "message", "Ordre confirmé ✅"));
+                "message", "Order confirmed ✅"));
     }
 
     // ═══════════════════════════════════════════════
@@ -121,7 +121,7 @@ public class OrdreController {
         return ResponseEntity.ok(
             Map.of(
                 "success", true,
-                "message", "Ordre complété ✅"));
+                "message", "Order completed ✅"));
     }
 
     // ═══════════════════════════════════════════════
@@ -142,7 +142,7 @@ public class OrdreController {
         return ResponseEntity.ok(
             Map.of(
                 "success", true,
-                "message", "Ordre rejeté ❌"));
+                "message", "Order rejected ❌"));
     }
 
     // ═══════════════════════════════════════════════
@@ -354,7 +354,7 @@ public class OrdreController {
             }
         }
         throw new RuntimeException(
-            "User non authentifié !");
+            "Unauthenticated user !");
     }
 
     // ═══════════════════════════════════════════════

@@ -115,7 +115,7 @@ public class OffreController {
 
         return ResponseEntity.ok(Map.of(
             "success", true,
-            "message", "Offre archivée ✅"));
+            "message", "Archived offer ✅"));
     }
 
     // ═══════════════════════════════════════════════
@@ -146,7 +146,7 @@ public class OffreController {
         offreService.blockOffre(offreId);
         return ResponseEntity.ok(Map.of(
             "success", true,
-            "message", "Offre bloquée ❌"));
+            "message", "Offer blocked ❌"));
     }
 
     // ═══════════════════════════════════════════════
@@ -158,7 +158,7 @@ public class OffreController {
         offreService.unblockOffre(offreId);
         return ResponseEntity.ok(Map.of(
             "success", true,
-            "message", "Offre débloquée ✅"));
+            "message", "Offer unlocked ✅"));
     }
 
     // ═══════════════════════════════════════════════
@@ -170,7 +170,7 @@ public class OffreController {
         offreService.deleteOffre(offreId);
         return ResponseEntity.ok(Map.of(
             "success", true,
-            "message", "Offre supprimée ✅"));
+            "message", "Offer removed ✅"));
     }
 
     // ═══════════════════════════════════════════════
@@ -200,7 +200,7 @@ public class OffreController {
         offreService.deleteOffrePhoto(offreId);
         return ResponseEntity.ok(Map.of(
             "success", true,
-            "message", "Photo supprimée"));
+            "message", "Photo deleted"));
     }
 
     // ═══════════════════════════════════════════════

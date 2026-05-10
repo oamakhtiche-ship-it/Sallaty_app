@@ -71,13 +71,14 @@ public class MessageService {
             String content) {
 
         if (!userExists(senderId))
-            throw new RuntimeException("Sender non trouvé !");
+            throw new RuntimeException("Sender not found !");
 
         if (!userExists(receiverId))
-            throw new RuntimeException("Receiver non trouvé !");
+            throw new RuntimeException("Receiver not found !");
 
         if (content == null || content.trim().isEmpty())
-            throw new IllegalArgumentException("Message vide !");
+            throw new IllegalArgumentException("\r\n" + //
+                                "Empty message !");
 
         String conversationId =
             computeConversationId(senderId, receiverId);
@@ -176,7 +177,8 @@ public class MessageService {
     @Transactional
     public void markAsRead(int userId, String conversationId) {
         if (!isParticipant(userId, conversationId))
-            throw new RuntimeException("Accès refusé !");
+            throw new RuntimeException("\r\n" + //
+                                "Access denied !");
         messageRepository.markConversationRead(
             conversationId, userId);
     }
@@ -197,11 +199,12 @@ public class MessageService {
         Message message = messageRepository
             .findById(messageId)
             .orElseThrow(() ->
-                new RuntimeException("Message non trouvé !"));
+                new RuntimeException("Message not found !"));
 
         if (message.getSenderId() != userId)
             throw new RuntimeException(
-                "Vous ne pouvez pas supprimer ce message !");
+                "\r\n" + //
+                                        "You cannot delete this message !");
 
         messageRepository.delete(message);
     }

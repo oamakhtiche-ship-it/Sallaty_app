@@ -28,9 +28,6 @@ public class AdminService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    // ═══════════════════════════════════════════════
-    //  1. getAllAdmins()
-    // ═══════════════════════════════════════════════
     public List<AdminDTO> getAllAdmins() {
         return adminRepository.findAllWithUserInfo()
             .stream()
@@ -45,12 +42,6 @@ public class AdminService {
             .collect(Collectors.toList());
     }
 
-    // ═══════════════════════════════════════════════
-    //  2. createAdmin()
-    // ═══════════════════════════════════════════════
-    // ═══════════════════════════════════════════════
-    //  2. createAdmin()  ✅ FIXED
-    // ═══════════════════════════════════════════════
     @Transactional
     public AdminDTO createAdmin(
             String firstName,
@@ -60,7 +51,6 @@ public class AdminService {
             String roleadmin,
             String permissions) {
 
-        // 1. Check duplicate email
         Long exists = ((Number) entityManager
             .createNativeQuery(
                 "SELECT COUNT(*) FROM users " +
@@ -71,13 +61,11 @@ public class AdminService {
         if (exists > 0)
             throw new RuntimeException("Email déjà utilisé !");
 
-        // 2. Validate role
         if (!roleadmin.equals("SUPER_ADMIN") &&
             !roleadmin.equals("NORMAL_ADMIN"))
             throw new RuntimeException(
                 "Role invalide ! (SUPER_ADMIN / NORMAL_ADMIN)");
 
-        // 3. Insert into users
         entityManager.createNativeQuery(
             "INSERT INTO users " +
             "(first_name, surname, contact, " +
@@ -94,20 +82,15 @@ public class AdminService {
                 passwordEncoder.encode(password))
             .executeUpdate();
 
-        // ✅ FIX: flush + clear so Hibernate doesn't
-        //        conflict with the next native selects/inserts
         entityManager.flush();
         entityManager.clear();
 
-        // 4. Get the new user ID
         int newUserId = ((Number) entityManager
             .createNativeQuery(
                 "SELECT id FROM users WHERE contact = :email")
             .setParameter("email", email)
             .getSingleResult()).intValue();
 
-        // 5. Insert into admins
-        //    ✅ FIX: never pass null for permissions — use "" for SUPER_ADMIN
         entityManager.createNativeQuery(
             "INSERT INTO admins (user_id, roleadmin, permissions) " +
             "VALUES (:userId, :roleadmin, :permissions)")
@@ -117,7 +100,6 @@ public class AdminService {
                 permissions != null ? permissions : "")
             .executeUpdate();
 
-        // 6. Insert into roles
         entityManager.createNativeQuery(
             "INSERT INTO roles (iduser, rolename, createat) " +
             "VALUES (:userId, 'ADMIN', NOW())")
@@ -130,14 +112,11 @@ public class AdminService {
             permissions != null ? permissions : "");
     }
 
-    // ═══════════════════════════════════════════════
-    //  3. deleteAdmin()
-    // ═══════════════════════════════════════════════
     @Transactional
     public void deleteAdmin(int userId) {
 
         if (!adminRepository.existsByUserId(userId))
-            throw new RuntimeException("Admin non trouvé !");
+            throw new RuntimeException("Admin not found !");
 
         entityManager.createNativeQuery(
             "DELETE FROM roles WHERE iduser = :id")
@@ -155,9 +134,6 @@ public class AdminService {
             .executeUpdate();
     }
 
-    // ═══════════════════════════════════════════════
-    //  4. getDashboardStats()
-    // ═══════════════════════════════════════════════
     public Map<String, Object> getDashboardStats() {
 
         long totalUsers = ((Number) entityManager
@@ -200,9 +176,6 @@ public class AdminService {
             "foodSaved",      foodSaved);
     }
 
-    // ═══════════════════════════════════════════════
-    //  5. getTopMerchants()
-    // ═══════════════════════════════════════════════
     @SuppressWarnings("unchecked")
     public List<Map<String, Object>> getTopMerchants() {
 
@@ -225,49 +198,42 @@ public class AdminService {
             .collect(Collectors.toList());
     }
 
-    // ═══════════════════════════════════════════════
-    //  6. getUserManagement()
-    // ═══════════════════════════════════════════════
-@SuppressWarnings("unchecked")
-public List<Map<String, Object>> getUserManagement(
-        String filter) {
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> getUserManagement(String filter) {
 
-    String condition = switch (
-            filter != null ? filter.toUpperCase() : "ALL") {
-        case "ACTIVE"  -> "WHERE u.account_state = 'ACTIVE' ";
-        case "BLOCKED" -> "WHERE u.account_state = 'BLOCKED' ";
-        default        -> "";
-    };
+        String condition = switch (
+                filter != null ? filter.toUpperCase() : "ALL") {
+            case "ACTIVE"  -> "WHERE u.account_state = 'ACTIVE' ";
+            case "BLOCKED" -> "WHERE u.account_state = 'BLOCKED' ";
+            default        -> "";
+        };
 
-    List<Object[]> rows = entityManager
-        .createNativeQuery(
-            "SELECT u.id, u.first_name, u.surname, u.contact, " +
-            "u.account_state, u.created_at, " +
-            "u.last_connection, u.profile_image " +
-            "FROM users u "
-            + condition +
-            "ORDER BY u.created_at DESC")
-        .getResultList();
+        List<Object[]> rows = entityManager
+            .createNativeQuery(
+                "SELECT u.id, u.first_name, u.surname, u.contact, " +
+                "u.account_state, u.created_at, " +
+                "u.last_connection, u.profile_image " +
+                "FROM users u "
+                + condition +
+                "ORDER BY u.created_at DESC")
+            .getResultList();
 
-    return rows.stream()
-        .map(row -> {
-            Map<String, Object> map = new HashMap<>();
-            map.put("id",
-                ((Number) row[0]).intValue());
-            map.put("firstName",      (String) row[1]);
-            map.put("surname",        (String) row[2]);
-            map.put("contact",        (String) row[3]);
-            map.put("accountState",   row[4]);
-            map.put("createdAt",      row[5]);
-            map.put("lastConnection", row[6]);
-            map.put("profileImage",   (String) row[7]);
-            return map;
-        })
-        .collect(Collectors.toList());
-}
-    // ═══════════════════════════════════════════════
-    //  7. getUserProfile()
-    // ═══════════════════════════════════════════════
+        return rows.stream()
+            .map(row -> {
+                Map<String, Object> map = new HashMap<>();
+                map.put("id",             ((Number) row[0]).intValue());
+                map.put("firstName",      (String) row[1]);
+                map.put("surname",        (String) row[2]);
+                map.put("contact",        (String) row[3]);
+                map.put("accountState",   row[4]);
+                map.put("createdAt",      row[5]);
+                map.put("lastConnection", row[6]);
+                map.put("profileImage",   (String) row[7]);
+                return map;
+            })
+            .collect(Collectors.toList());
+    }
+
     @SuppressWarnings("unchecked")
     public Map<String, Object> getUserProfile(int userId) {
 
@@ -282,26 +248,23 @@ public List<Map<String, Object>> getUserManagement(
                 .setParameter("id", userId)
                 .getSingleResult();
         } catch (Exception e) {
-            throw new RuntimeException("User non trouvé !");
+            throw new RuntimeException("User not found !");
         }
 
         long totalOrders = ((Number) entityManager
             .createNativeQuery(
-                "SELECT COUNT(*) FROM reservations " +
-                "WHERE client_id = :id")
+                "SELECT COUNT(*) FROM reservations WHERE client_id = :id")
             .setParameter("id", userId)
             .getSingleResult()).longValue();
 
         long totalFavoris = ((Number) entityManager
             .createNativeQuery(
-                "SELECT COUNT(*) FROM offre_favoris " +
-                "WHERE user_id = :id")
+                "SELECT COUNT(*) FROM offre_favoris WHERE user_id = :id")
             .setParameter("id", userId)
             .getSingleResult()).longValue();
 
         Map<String, Object> map = new HashMap<>();
-        map.put("id",
-            ((Number) row[0]).intValue());
+        map.put("id",             ((Number) row[0]).intValue());
         map.put("firstName",      (String) row[1]);
         map.put("surname",        (String) row[2]);
         map.put("contact",        (String) row[3]);
@@ -316,9 +279,6 @@ public List<Map<String, Object>> getUserManagement(
         return map;
     }
 
-    // ═══════════════════════════════════════════════
-    //  8. getUserOrders()
-    // ═══════════════════════════════════════════════
     @SuppressWarnings("unchecked")
     public List<Map<String, Object>> getUserOrders(int userId) {
 
@@ -339,18 +299,12 @@ public List<Map<String, Object>> getUserManagement(
         return rows.stream()
             .map(row -> {
                 Map<String, Object> map = new HashMap<>();
-                map.put("ordreId",
-                    ((Number) row[0]).intValue());
-                map.put("title",
-                    (String) row[1]);
-                map.put("photo",
-                    (String) row[2]);
-                map.put("price",
-                    ((Number) row[3]).doubleValue());
-                map.put("quantity",
-                    ((Number) row[4]).intValue());
-                map.put("totalPrice",
-                    ((Number) row[5]).doubleValue());
+                map.put("ordreId",      ((Number) row[0]).intValue());
+                map.put("title",        (String) row[1]);
+                map.put("photo",        (String) row[2]);
+                map.put("price",        ((Number) row[3]).doubleValue());
+                map.put("quantity",     ((Number) row[4]).intValue());
+                map.put("totalPrice",   ((Number) row[5]).doubleValue());
                 map.put("status",       (String) row[6]);
                 map.put("createdAt",    row[7]);
                 map.put("businessName", (String) row[8]);
@@ -361,56 +315,59 @@ public List<Map<String, Object>> getUserManagement(
     }
 
     // ═══════════════════════════════════════════════
-    //  9. getMerchantManagement()
-    // ═══════════════════════════════════════════════
-    @SuppressWarnings("unchecked")
-    public List<Map<String, Object>> getMerchantManagement(
-            String filter) {
+//  getMerchantManagement()  — UPDATED
+//  Replaces stored m.revenue with live SUM()
+//  and uses getMerchantRevenue() per merchant
+// ═══════════════════════════════════════════════
+@SuppressWarnings("unchecked")
+public List<Map<String, Object>> getMerchantManagement(String filter) {
 
-        String condition = switch (
-                filter != null ? filter.toUpperCase() : "ALL") {
-            case "ACTIVE"  -> "AND m.status_marchand = 'VERIFIED' ";
-            case "PENDING" -> "AND m.status_marchand = 'PENDING' ";
-            case "BLOCKED" -> "AND m.status_marchand = 'CANCELLED' ";
-            default        -> "";
-        };
+    String condition = switch (
+            filter != null ? filter.toUpperCase() : "ALL") {
+        case "ACTIVE"  -> "AND m.status_marchand = 'VERIFIED' ";
+        case "PENDING" -> "AND m.status_marchand = 'PENDING' ";
+        case "BLOCKED" -> "AND m.status_marchand = 'CANCELLED' ";
+        default        -> "";
+    };
 
-        List<Object[]> rows = entityManager
-            .createNativeQuery(
-                "SELECT m.user_id, m.business_name, m.full_name, " +
-                "u.contact, m.status_marchand, " +
-                "(SELECT COUNT(*) FROM offres o " +
-                " WHERE o.marchand_id = m.user_id) AS nb_offres, " +
-                "m.revenue, u.profile_image, u.wilaya " +
-                "FROM marchands m " +
-                "JOIN users u ON u.id = m.user_id "
-                + condition +
-                "ORDER BY m.revenue DESC")
-            .getResultList();
+    // ✅ nbOffres computed live via subquery (already correct)
+    // ✅ revenue now computed live via getMerchantRevenue()
+    //    instead of relying on the stored m.revenue column
+    List<Object[]> rows = entityManager
+        .createNativeQuery(
+            "SELECT m.user_id, m.business_name, m.full_name, " +
+            "u.contact, m.status_marchand, " +
+            "(SELECT COUNT(*) FROM offres o " +
+            " WHERE o.marchand_id = m.user_id) AS nb_offres, " +
+            "u.profile_image, u.wilaya " +
+            "FROM marchands m " +
+            "JOIN users u ON u.id = m.user_id "
+            + condition +
+            "ORDER BY m.full_name ASC")
+        .getResultList();
 
-        return rows.stream()
-            .map(row -> {
-                Map<String, Object> map = new HashMap<>();
-                map.put("userId",
-                    ((Number) row[0]).intValue());
-                map.put("businessName", (String) row[1]);
-                map.put("fullName",     (String) row[2]);
-                map.put("contact",      (String) row[3]);
-                map.put("status",       (String) row[4]);
-                map.put("nbOffres",
-                    ((Number) row[5]).intValue());
-                map.put("revenue",
-                    ((Number) row[6]).doubleValue());
-                map.put("profileImage", (String) row[7]);
-                map.put("wilaya",       (String) row[8]);
-                return map;
-            })
-            .collect(Collectors.toList());
-    }
+    return rows.stream()
+        .map(row -> {
+            int userId = ((Number) row[0]).intValue();
 
-    // ═══════════════════════════════════════════════
-    //  10. getMerchantProfile()
-    // ═══════════════════════════════════════════════
+            Map<String, Object> map = new HashMap<>();
+            map.put("userId",       userId);
+            map.put("businessName", (String) row[1]);
+            map.put("fullName",     (String) row[2]);
+            map.put("contact",      (String) row[3]);
+            map.put("status",       (String) row[4]);
+            map.put("nbOffres",     ((Number) row[5]).intValue());
+
+            // ✅ Live revenue from completed reservations
+            map.put("revenue",      getMerchantRevenue(userId));
+
+            map.put("profileImage", (String) row[6]);
+            map.put("wilaya",       (String) row[7]);
+            return map;
+        })
+        .collect(Collectors.toList());
+}
+
     @SuppressWarnings("unchecked")
     public Map<String, Object> getMerchantProfile(int userId) {
 
@@ -431,39 +388,31 @@ public List<Map<String, Object>> getUserManagement(
                 .setParameter("id", userId)
                 .getSingleResult();
         } catch (Exception e) {
-            throw new RuntimeException("Marchand non trouvé !");
+            throw new RuntimeException("Marchand not found !");
         }
 
         Map<String, Object> map = new HashMap<>();
-        map.put("userId",
-            ((Number) row[0]).intValue());
-        map.put("firstName",    (String) row[1]);
-        map.put("surname",      (String) row[2]);
-        map.put("contact",      (String) row[3]);
-        map.put("phoneNumber",  (String) row[4]);
-        map.put("wilaya",       (String) row[5]);
-        map.put("businessName", (String) row[6]);
-        map.put("businessType", (String) row[7]);
-        map.put("tradeRegister",(String) row[8]);
-        map.put("status",       (String) row[9]);
-        map.put("nbOffres",
-            ((Number) row[10]).intValue());
-        map.put("revenue",
-            ((Number) row[11]).doubleValue());
-        map.put("nbFollowers",
-            ((Number) row[12]).intValue());
-        map.put("profileImage", (String) row[13]);
-        map.put("createdAt",    row[14]);
+        map.put("userId",         ((Number) row[0]).intValue());
+        map.put("firstName",      (String) row[1]);
+        map.put("surname",        (String) row[2]);
+        map.put("contact",        (String) row[3]);
+        map.put("phoneNumber",    (String) row[4]);
+        map.put("wilaya",         (String) row[5]);
+        map.put("businessName",   (String) row[6]);
+        map.put("businessType",   (String) row[7]);
+        map.put("tradeRegister",  (String) row[8]);
+        map.put("status",         (String) row[9]);
+        map.put("nbOffres",       ((Number) row[10]).intValue());
+        map.put("revenue",        ((Number) row[11]).doubleValue());
+        map.put("nbFollowers",    ((Number) row[12]).intValue());
+        map.put("profileImage",   (String) row[13]);
+        map.put("createdAt",      row[14]);
         map.put("lastConnection", row[15]);
         return map;
     }
 
-    // ═══════════════════════════════════════════════
-    //  11. getMerchantOrders()
-    // ═══════════════════════════════════════════════
     @SuppressWarnings("unchecked")
-    public List<Map<String, Object>> getMerchantOrders(
-            int userId) {
+    public List<Map<String, Object>> getMerchantOrders(int userId) {
 
         List<Object[]> rows = entityManager
             .createNativeQuery(
@@ -480,12 +429,10 @@ public List<Map<String, Object>> getUserManagement(
         return rows.stream()
             .map(row -> {
                 Map<String, Object> map = new HashMap<>();
-                map.put("ordreId",
-                    ((Number) row[0]).intValue());
+                map.put("ordreId",    ((Number) row[0]).intValue());
                 map.put("title",      (String) row[1]);
                 map.put("photo",      (String) row[2]);
-                map.put("totalPrice",
-                    ((Number) row[3]).doubleValue());
+                map.put("totalPrice", ((Number) row[3]).doubleValue());
                 map.put("status",     (String) row[4]);
                 map.put("createdAt",  row[5]);
                 map.put("clientName", row[6] + " " + row[7]);
@@ -494,12 +441,8 @@ public List<Map<String, Object>> getUserManagement(
             .collect(Collectors.toList());
     }
 
-    // ═══════════════════════════════════════════════
-    //  12. getMerchantOffers()
-    // ═══════════════════════════════════════════════
     @SuppressWarnings("unchecked")
-    public List<Map<String, Object>> getMerchantOffers(
-            int userId) {
+    public List<Map<String, Object>> getMerchantOffers(int userId) {
 
         List<Object[]> rows = entityManager
             .createNativeQuery(
@@ -514,14 +457,11 @@ public List<Map<String, Object>> getUserManagement(
         return rows.stream()
             .map(row -> {
                 Map<String, Object> map = new HashMap<>();
-                map.put("offreId",
-                    ((Number) row[0]).intValue());
+                map.put("offreId",   ((Number) row[0]).intValue());
                 map.put("title",     (String) row[1]);
                 map.put("photo",     (String) row[2]);
-                map.put("price",
-                    ((Number) row[3]).doubleValue());
-                map.put("quantity",
-                    ((Number) row[4]).intValue());
+                map.put("price",     ((Number) row[3]).doubleValue());
+                map.put("quantity",  ((Number) row[4]).intValue());
                 map.put("status",    (String) row[5]);
                 map.put("createdAt", row[6]);
                 map.put("expireAt",  row[7]);
@@ -530,12 +470,8 @@ public List<Map<String, Object>> getUserManagement(
             .collect(Collectors.toList());
     }
 
-    // ═══════════════════════════════════════════════
-    //  13. getOfferManagement()
-    // ═══════════════════════════════════════════════
     @SuppressWarnings("unchecked")
-    public List<Map<String, Object>> getOfferManagement(
-            String filter) {
+    public List<Map<String, Object>> getOfferManagement(String filter) {
 
         String condition = switch (
                 filter != null ? filter.toUpperCase() : "ALL") {
@@ -560,14 +496,11 @@ public List<Map<String, Object>> getUserManagement(
         return rows.stream()
             .map(row -> {
                 Map<String, Object> map = new HashMap<>();
-                map.put("offreId",
-                    ((Number) row[0]).intValue());
+                map.put("offreId",      ((Number) row[0]).intValue());
                 map.put("title",        (String) row[1]);
                 map.put("photo",        (String) row[2]);
-                map.put("price",
-                    ((Number) row[3]).doubleValue());
-                map.put("quantity",
-                    ((Number) row[4]).intValue());
+                map.put("price",        ((Number) row[3]).doubleValue());
+                map.put("quantity",     ((Number) row[4]).intValue());
                 map.put("status",       (String) row[5]);
                 map.put("createdAt",    row[6]);
                 map.put("businessName", (String) row[7]);
@@ -577,12 +510,8 @@ public List<Map<String, Object>> getUserManagement(
             .collect(Collectors.toList());
     }
 
-    // ═══════════════════════════════════════════════
-    //  14. getReservationManagement()
-    // ═══════════════════════════════════════════════
     @SuppressWarnings("unchecked")
-    public List<Map<String, Object>> getReservationManagement(
-            String filter) {
+    public List<Map<String, Object>> getReservationManagement(String filter) {
 
         String condition = switch (
                 filter != null ? filter.toUpperCase() : "ALL") {
@@ -608,12 +537,10 @@ public List<Map<String, Object>> getUserManagement(
         return rows.stream()
             .map(row -> {
                 Map<String, Object> map = new HashMap<>();
-                map.put("ordreId",
-                    ((Number) row[0]).intValue());
+                map.put("ordreId",      ((Number) row[0]).intValue());
                 map.put("title",        (String) row[1]);
                 map.put("photo",        (String) row[2]);
-                map.put("totalPrice",
-                    ((Number) row[3]).doubleValue());
+                map.put("totalPrice",   ((Number) row[3]).doubleValue());
                 map.put("status",       (String) row[4]);
                 map.put("createdAt",    row[5]);
                 map.put("clientName",   row[6] + " " + row[7]);
@@ -622,103 +549,118 @@ public List<Map<String, Object>> getUserManagement(
             })
             .collect(Collectors.toList());
     }
+
+    // ✅ CORRIGÉ — PostgreSQL
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> getRevenuePerMonth() {
+
+        List<Object[]> rows = entityManager
+            .createNativeQuery(
+                "SELECT EXTRACT(MONTH FROM r.created_at) AS month, " +
+                "EXTRACT(YEAR FROM r.created_at) AS year, " +
+                "COALESCE(SUM(r.total_price), 0) AS revenue " +
+                "FROM reservations r " +
+                "WHERE r.status = 'COMPLETED' " +
+                "AND r.created_at >= NOW() - INTERVAL '6 months' " +
+                "GROUP BY EXTRACT(YEAR FROM r.created_at), " +
+                "         EXTRACT(MONTH FROM r.created_at) " +
+                "ORDER BY EXTRACT(YEAR FROM r.created_at), " +
+                "         EXTRACT(MONTH FROM r.created_at)")
+            .getResultList();
+
+        return rows.stream()
+            .map(row -> {
+                Map<String, Object> map = new HashMap<>();
+                map.put("month",   ((Number) row[0]).intValue());
+                map.put("year",    ((Number) row[1]).intValue());
+                map.put("revenue", ((Number) row[2]).doubleValue());
+                return map;
+            })
+            .collect(Collectors.toList());
+    }
+
+    public Map<String, Object> getUserDistribution() {
+
+        long totalClients = ((Number) entityManager
+            .createNativeQuery(
+                "SELECT COUNT(*) FROM users " +
+                "WHERE account_type NOT IN ('ADMIN', 'MARCHANT')")
+            .getSingleResult()).longValue();
+
+        long totalMarchands = ((Number) entityManager
+            .createNativeQuery(
+                "SELECT COUNT(*) FROM users " +
+                "WHERE account_type = 'MARCHANT'")
+            .getSingleResult()).longValue();
+
+        long total = totalClients + totalMarchands;
+
+        double clientPercent  = total > 0
+            ? Math.round((totalClients  * 100.0 / total) * 10.0) / 10.0 : 0;
+        double marchandPercent = total > 0
+            ? Math.round((totalMarchands * 100.0 / total) * 10.0) / 10.0 : 0;
+
+        Map<String, Object> map = new HashMap<>();
+        map.put("totalClients",    totalClients);
+        map.put("totalMarchands",  totalMarchands);
+        map.put("clientPercent",   clientPercent);
+        map.put("marchandPercent", marchandPercent);
+        return map;
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> getTopMerchantsChart() {
+
+        List<Object[]> rows = entityManager
+            .createNativeQuery(
+                "SELECT m.business_name, " +
+                "COALESCE(m.revenue, 0) AS revenue, " +
+                "(SELECT COUNT(*) FROM offres o " +
+                " WHERE o.marchand_id = m.user_id) AS nb_offres, " +
+                "m.nb_followers " +
+                "FROM marchands m " +
+                "WHERE m.status_marchand = 'VERIFIED' " +
+                "ORDER BY m.revenue DESC LIMIT 10")
+            .getResultList();
+
+        return rows.stream()
+            .map(row -> {
+                Map<String, Object> map = new HashMap<>();
+                map.put("businessName", (String) row[0]);
+                map.put("revenue",      ((Number) row[1]).doubleValue());
+                map.put("nbOffres",     ((Number) row[2]).intValue());
+                map.put("nbFollowers",  ((Number) row[3]).intValue());
+                return map;
+            })
+            .collect(Collectors.toList());
+    }
+
     // ═══════════════════════════════════════════════
-//  15. getRevenuePerMonth()
+//  getMerchantOfferCount()
+//  Returns total number of offers for a merchant
+//  Used in: getMerchantManagement() DTO
 // ═══════════════════════════════════════════════
-@SuppressWarnings("unchecked")
-public List<Map<String, Object>> getRevenuePerMonth() {
-
-    List<Object[]> rows = entityManager
+public int getMerchantOfferCount(int userId) {
+    Number count = (Number) entityManager
         .createNativeQuery(
-            "SELECT MONTH(r.created_at) AS month, " +
-            "YEAR(r.created_at) AS year, " +
-            "COALESCE(SUM(r.total_price), 0) AS revenue " +
+            "SELECT COUNT(*) " +
+            "FROM offres o " +
+            "WHERE o.marchand_id = :id")
+        .setParameter("id", userId)
+        .getSingleResult();
+    return count.intValue();
+}
+
+
+public double getMerchantRevenue(int userId) {
+    Number revenue = (Number) entityManager
+        .createNativeQuery(
+            "SELECT COALESCE(SUM(r.total_price), 0) " +
             "FROM reservations r " +
-            "WHERE r.status = 'COMPLETED' " +
-            "AND r.created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH) " +
-            "GROUP BY YEAR(r.created_at), MONTH(r.created_at) " +
-            "ORDER BY YEAR(r.created_at), MONTH(r.created_at)")
-        .getResultList();
-
-    return rows.stream()
-        .map(row -> {
-            Map<String, Object> map = new HashMap<>();
-            map.put("month",
-                ((Number) row[0]).intValue());
-            map.put("year",
-                ((Number) row[1]).intValue());
-            map.put("revenue",
-                ((Number) row[2]).doubleValue());
-            return map;
-        })
-        .collect(Collectors.toList());
-}
-
-// ═══════════════════════════════════════════════
-//  16. getUserDistribution()
-// ═══════════════════════════════════════════════
-public Map<String, Object> getUserDistribution() {
-
-    long totalClients = ((Number) entityManager
-        .createNativeQuery(
-            "SELECT COUNT(*) FROM users " +
-            "WHERE account_type NOT IN ('ADMIN', 'MARCHANT')")
-        .getSingleResult()).longValue();
-
-    long totalMarchands = ((Number) entityManager
-        .createNativeQuery(
-            "SELECT COUNT(*) FROM users " +
-            "WHERE account_type = 'MARCHANT'")
-        .getSingleResult()).longValue();
-
-    long total = totalClients + totalMarchands;
-
-    double clientPercent  = total > 0
-        ? Math.round((totalClients  * 100.0 / total) * 10.0) / 10.0
-        : 0;
-    double marchandPercent = total > 0
-        ? Math.round((totalMarchands * 100.0 / total) * 10.0) / 10.0
-        : 0;
-
-    Map<String, Object> map = new HashMap<>();
-    map.put("totalClients",     totalClients);
-    map.put("totalMarchands",   totalMarchands);
-    map.put("clientPercent",    clientPercent);
-    map.put("marchandPercent",  marchandPercent);
-    return map;
-}
-
-// ═══════════════════════════════════════════════
-//  17. getTopMerchantsChart()
-// ═══════════════════════════════════════════════
-@SuppressWarnings("unchecked")
-public List<Map<String, Object>> getTopMerchantsChart() {
-
-    List<Object[]> rows = entityManager
-        .createNativeQuery(
-            "SELECT m.business_name, " +
-            "COALESCE(m.revenue, 0) AS revenue, " +
-            "(SELECT COUNT(*) FROM offres o " +
-            " WHERE o.marchand_id = m.user_id) AS nb_offres, " +
-            "m.nb_followers " +
-            "FROM marchands m " +
-            "WHERE m.status_marchand = 'VERIFIED' " +
-            "ORDER BY m.revenue DESC LIMIT 10")
-        .getResultList();
-
-    return rows.stream()
-        .map(row -> {
-            Map<String, Object> map = new HashMap<>();
-            map.put("businessName",
-                (String) row[0]);
-            map.put("revenue",
-                ((Number) row[1]).doubleValue());
-            map.put("nbOffres",
-                ((Number) row[2]).intValue());
-            map.put("nbFollowers",
-                ((Number) row[3]).intValue());
-            return map;
-        })
-        .collect(Collectors.toList());
+            "WHERE r.marchand_id = :id " +
+            "AND r.status = 'COMPLETED'")
+        .setParameter("id", userId)
+        .getSingleResult();
+    return revenue.doubleValue();
 }
 }

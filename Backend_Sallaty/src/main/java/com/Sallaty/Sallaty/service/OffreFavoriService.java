@@ -39,12 +39,12 @@ public class OffreFavoriService {
 public boolean toggleFavori(int userId, int offreId) {
 
     if (!userRepository.existsById(userId))
-        throw new RuntimeException("User non trouvé !");
+        throw new RuntimeException("User not found !");
 
     Offre offre = offreRepository
         .findById(offreId)
         .orElseThrow(() ->
-            new RuntimeException("Offre non trouvée !"));
+            new RuntimeException("Offre not found !"));
 
     if (offreFavoriRepository.existsByUserIdAndOffreId(userId, offreId)) {
 
@@ -69,9 +69,12 @@ public boolean toggleFavori(int userId, int offreId) {
 
         notificationService.sendNotification(
             offre.getMarchandId(),
-            "Nouvelle favori ❤️",
-            "Un utilisateur a ajouté votre offre \"" +
-            offre.getTitle() + "\" à ses favoris.",
+            "\r\n" + //
+                                "New favorite ❤️",
+            "\r\n" + //
+                                "A user has added your offer \"" +
+            offre.getTitle() + "\" \r\n" + //
+                                "to his favorites.",
             NotificationType.NEW_FAVORITE);
 
         return true; // ❤️
@@ -87,7 +90,7 @@ public boolean toggleFavori(int userId, int offreId) {
 
         if (!userRepository.existsById(userId))
             throw new RuntimeException(
-                "User non trouvé !");
+                "User not found !");
 
         return offreFavoriRepository
             .findByUserId(userId);

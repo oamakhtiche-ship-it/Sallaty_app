@@ -2,7 +2,6 @@ package com.Sallaty.Sallaty.config;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -25,36 +24,22 @@ import com.Sallaty.Sallaty.security.JwtFilter;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    @Autowired
-    private JwtFilter jwtFilter;
+    // ✅ Constantes pour éviter la duplication (SonarLint S1192)
+    private static final String ROLE_MARCHANT = "MARCHANT";
+    private static final String ROLE_ADMIN    = "ADMIN";
 
-    // ✅ CORS — autorise Flutter Web (localhost) + mobile + ngrok
+    // ✅ CORS
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-
-        // Autorise toutes les origines (Flutter Web, mobile, ngrok)
         config.setAllowedOriginPatterns(List.of("*"));
-
-        // Méthodes HTTP autorisées
-        config.setAllowedMethods(List.of(
-            "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"
-        ));
-
-        // Headers autorisés
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         config.setAllowedHeaders(List.of("*"));
-
-        // Expose Authorization header
         config.setExposedHeaders(List.of("Authorization"));
-
-        // Autorise les credentials (token JWT)
         config.setAllowCredentials(true);
-
-        // Durée du cache preflight
         config.setMaxAge(3600L);
 
-        UrlBasedCorsConfigurationSource source =
-            new UrlBasedCorsConfigurationSource();
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
     }
@@ -66,17 +51,17 @@ public class SecurityConfig {
 
     @Bean
     public AuthenticationManager authenticationManager(
-            AuthenticationConfiguration config)
-            throws Exception {
+            AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
 
+    // ✅ JwtFilter injecté directement dans la méthode (SonarLint S6813 + S3305)
     @Bean
     public SecurityFilterChain securityFilterChain(
-            HttpSecurity http) throws Exception {
+            HttpSecurity http,
+            JwtFilter jwtFilter) throws Exception {
 
         http
-            // ✅ CORS activé avec notre config
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
@@ -95,7 +80,6 @@ public class SecurityConfig {
                     "/api/categories/**"
                 ).permitAll()
 
-                // ✅ OFFRES PUBLIC
                 .requestMatchers(HttpMethod.GET,
                     "/api/offres/available",
                     "/api/offres/recent",
@@ -142,50 +126,53 @@ public class SecurityConfig {
                     "/ws/**"
                 ).permitAll()
 
-                // ✅ ORDRES PUBLIC
                 .requestMatchers(HttpMethod.GET,
                     "/api/ordres/offre/**",
                     "/api/ordres/reservations/**",
                     "/api/ordres/location/**"
                 ).permitAll()
 
+                // ✅ Offre par ID — public
+                .requestMatchers(HttpMethod.GET, "/api/offres/**").permitAll()
+
+                // ═══════════════════════════════════════════════
+                //  STATISTICS — règles spécifiques AVANT les générales
+                // ═══════════════════════════════════════════════
+                .requestMatchers(HttpMethod.GET, "/api/statistics/marchand")
+                    .hasAnyAuthority(ROLE_MARCHANT, ROLE_ADMIN)
+
+                .requestMatchers(HttpMethod.GET, "/api/statistics/client")
+                    .authenticated()
+
                 // ═══════════════════════════════════════════════
                 //  MARCHAND + ADMIN
                 // ═══════════════════════════════════════════════
-                .requestMatchers(
-                    HttpMethod.POST, "/api/offres/create"
-                ).hasAnyAuthority("MARCHANT", "ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/offres/create")
+                    .hasAnyAuthority(ROLE_MARCHANT, ROLE_ADMIN)
 
-                .requestMatchers(
-                    HttpMethod.PUT,
+                .requestMatchers(HttpMethod.PUT,
                     "/api/offres/update/**",
                     "/api/offres/archive/**",
                     "/api/offres/discount/**"
-                ).hasAnyAuthority("MARCHANT", "ADMIN")
+                ).hasAnyAuthority(ROLE_MARCHANT, ROLE_ADMIN)
 
-                .requestMatchers(
-                    HttpMethod.DELETE, "/api/offres/photo/**"
-                ).hasAnyAuthority("MARCHANT", "ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/offres/photo/**")
+                    .hasAnyAuthority(ROLE_MARCHANT, ROLE_ADMIN)
 
-                .requestMatchers(
-                    HttpMethod.POST, "/api/offres/photo/**"
-                ).hasAnyAuthority("MARCHANT", "ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/offres/photo/**")
+                    .hasAnyAuthority(ROLE_MARCHANT, ROLE_ADMIN)
 
                 .requestMatchers(HttpMethod.GET,
                     "/api/offres/sold-out",
                     "/api/offres/expired",
                     "/api/offres/inactive",
-                    "api/marchand/statistics"
-                ).hasAnyAuthority("MARCHANT", "ADMIN")
+                    "/api/marchand/statistics"
+                ).hasAnyAuthority(ROLE_MARCHANT, ROLE_ADMIN)
 
                 .requestMatchers(
                     "/api/roles/marchand/**",
                     "/api/marchand/profile/**"
-                ).hasAnyAuthority("MARCHANT", "ADMIN")
-
-                // ✅ Offre par ID — public
-                .requestMatchers(HttpMethod.GET, "/api/offres/**"
-                ).permitAll()
+                ).hasAnyAuthority(ROLE_MARCHANT, ROLE_ADMIN)
 
                 // ═══════════════════════════════════════════════
                 //  ADMIN seulement
@@ -212,10 +199,10 @@ public class SecurityConfig {
                     "/api/admin/**",
                     "/api/notifications/broadcast",
                     "/api/notifications/support/**"
-                ).hasAuthority("ADMIN")
+                ).hasAuthority(ROLE_ADMIN)
 
                 // ═══════════════════════════════════════════════
-                //  AUTHENTICATED — token requis
+                //  AUTHENTICATED — token requis (règles générales EN DERNIER)
                 // ═══════════════════════════════════════════════
                 .requestMatchers(
                     "/api/users/**",
@@ -228,22 +215,14 @@ public class SecurityConfig {
                     "/api/favoris/**",
                     "/api/subscribe/**",
                     "/api/notifications/**",
-                    "/api/settings/**"
+                    "/api/settings/**",
+                    "/api/statistics/**"
                 ).authenticated()
-                // ── In SecurityConfig.java, replace the old statistics rules with these: ──
 
-// MERCHANT statistics  → authenticated + MARCHANT role
-.requestMatchers(HttpMethod.GET, "/api/statistics/marchand")
-    .hasAnyAuthority("MARCHANT", "ADMIN")
-
-// CLIENT statistics → any authenticated user
-.requestMatchers(HttpMethod.GET, "/api/statistics/client")
-    .authenticated()
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session
-                .sessionCreationPolicy(
-                    SessionCreationPolicy.STATELESS))
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .addFilterBefore(
                 jwtFilter,
                 UsernamePasswordAuthenticationFilter.class);

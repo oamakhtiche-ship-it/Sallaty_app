@@ -117,7 +117,7 @@ public ResponseEntity<?> createAdmin(
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("message", "Admin supprimé ✅");
+        response.put("message", "Admin deleted ✅");
         return ResponseEntity.ok(response);
     }
 

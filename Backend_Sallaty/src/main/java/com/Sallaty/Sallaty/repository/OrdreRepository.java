@@ -43,6 +43,10 @@ List<Ordre> findByClientIdAndStatusIn(
 List<Ordre> findByMarchandIdAndStatusIn(
     int marchandId, List<String> statuses);
 
+
+    List<Ordre> findByOffreIdAndStatus(int offreId, String status);
+
+    
 // ➕ utilisé dans WebSocketConfig.authorizeSubscribe()
     // vérifie que l'ordre appartient au client ou au marchand
     @Query("SELECT COUNT(o) > 0 FROM Ordre o " +

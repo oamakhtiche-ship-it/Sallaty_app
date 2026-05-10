@@ -107,7 +107,7 @@ public class UserService {
     @Transactional
     public void uploadImage(int userId, String imagePath) {
         if (getUserRow(userId) == null)
-            throw new RuntimeException("User non trouvé !");
+            throw new RuntimeException("User not found !");
 
         entityManager.createNativeQuery(
             "UPDATE users SET profile_image = :path WHERE id = :id")
@@ -123,11 +123,11 @@ public class UserService {
     public void deleteImage(int userId) {
         Object[] row = getUserRow(userId);
         if (row == null)
-            throw new RuntimeException("User non trouvé !");
+            throw new RuntimeException("User not found !");
 
         String profileImage = (String) row[4];
         if (profileImage == null || profileImage.isEmpty())
-            throw new RuntimeException("Pas de photo !");
+            throw new RuntimeException("no picture !");
 
         imageService.deleteOldImage(userId);
 
@@ -143,7 +143,7 @@ public class UserService {
     @Transactional
     public void logout(int userId) {
         if (getUserRow(userId) == null)
-            throw new RuntimeException("User non trouvé !");
+            throw new RuntimeException("User not found !");
 
         entityManager.createNativeQuery(
             "UPDATE users SET device_token = NULL WHERE id = :id")
@@ -158,11 +158,11 @@ public class UserService {
     public void blockUser(int userId) {
         Object[] row = getUserRow(userId);
         if (row == null)
-            throw new RuntimeException("User non trouvé !");
+            throw new RuntimeException("User not found !");
 
         String accountState = (String) row[5];
         if ("BLOCKED".equals(accountState))
-            throw new RuntimeException("User déjà bloqué !");
+            throw new RuntimeException("User already blocked !");
 
         entityManager.createNativeQuery(
             "UPDATE users SET account_state = 'BLOCKED' WHERE id = :id")
@@ -170,8 +170,9 @@ public class UserService {
             .executeUpdate();
 
         notificationService.sendNotification(
-            userId, "Compte bloqué",
-            "Votre compte a été bloqué par l'administrateur.",
+            userId, "Blocked account\r\n" + //
+                                "",
+            "Your account has been blocked by the administrator.",
             NotificationType.ADMIN_UPDATE);
     }
 
@@ -182,11 +183,11 @@ public class UserService {
     public void unblockUser(int userId) {
         Object[] row = getUserRow(userId);
         if (row == null)
-            throw new RuntimeException("User non trouvé !");
+            throw new RuntimeException("User not found !");
 
         String accountState = (String) row[5];
         if (!"BLOCKED".equals(accountState))
-            throw new RuntimeException("User pas bloqué !");
+            throw new RuntimeException("User not blocked !");
 
         entityManager.createNativeQuery(
             "UPDATE users SET account_state = 'ACTIVE' WHERE id = :id")
@@ -194,8 +195,8 @@ public class UserService {
             .executeUpdate();
 
         notificationService.sendNotification(
-            userId, "Compte débloqué",
-            "Votre compte a été débloqué par l'administrateur.",
+            userId, "Account unlocked",
+            "Your account has been unlocked by the administrator.",
             NotificationType.ADMIN_UPDATE);
     }
 
@@ -205,7 +206,7 @@ public class UserService {
     @Transactional
     public void deleteUser(int userId) {
         if (getUserRow(userId) == null)
-            throw new RuntimeException("User non trouvé !");
+            throw new RuntimeException("User not found !");
 
         entityManager.createNativeQuery(
             "DELETE FROM users WHERE id = :id")
@@ -222,7 +223,7 @@ public class UserService {
             throw new IllegalArgumentException("Montant invalide !");
 
         if (getUserRow(userId) == null)
-            throw new RuntimeException("User non trouvé !");
+            throw new RuntimeException("User not found !");
 
         entityManager.createNativeQuery(
             "UPDATE users SET balance = balance + :amount WHERE id = :id")
@@ -237,7 +238,7 @@ public class UserService {
     public double getBalance(int userId) {
         Object[] row = getUserRow(userId);
         if (row == null)
-            throw new RuntimeException("User non trouvé !");
+            throw new RuntimeException("User not found !");
         return row[10] != null ? ((Number) row[10]).doubleValue() : 0.0;
     }
 
@@ -251,13 +252,13 @@ public class UserService {
 
         Object[] row = getUserRow(userId);
         if (row == null)
-            throw new RuntimeException("User non trouvé !");
+            throw new RuntimeException("User not found !");
 
         double balance = row[10] != null
             ? ((Number) row[10]).doubleValue() : 0.0;
 
         if (balance < amount)
-            throw new RuntimeException("Solde insuffisant !");
+            throw new RuntimeException("Insufficient balance !");
 
         entityManager.createNativeQuery(
             "UPDATE users SET balance = balance - :amount WHERE id = :id")
@@ -272,7 +273,7 @@ public class UserService {
     @Transactional
     public void updateDeviceToken(int userId, String token) {
         if (getUserRow(userId) == null)
-            throw new RuntimeException("User non trouvé !");
+            throw new RuntimeException("User not found !");
 
         entityManager.createNativeQuery(
             "UPDATE users SET device_token = :token WHERE id = :id")
@@ -292,7 +293,7 @@ public void updateUser(
 
     User user = userRepository.findById(userId)
         .orElseThrow(() ->
-            new RuntimeException("User non trouvé !"));
+            new RuntimeException("User not found !"));
 
     if (firstName != null && !firstName.isEmpty())
         user.setFirstName(firstName);

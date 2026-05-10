@@ -36,7 +36,7 @@ public class SystemConfigService {
 
         if (rate < 0 || rate > 1)
             throw new RuntimeException(
-                "Commission doit être entre 0 et 1 !");
+                "Commission must be between 0 and 1!");
 
         SystemConfig config = getConfig();
         config.setCommissionRate(rate);
@@ -48,7 +48,7 @@ public class SystemConfigService {
 
         if (cost < 0)
             throw new RuntimeException(
-                "Transport cost invalide !");
+                "Transportation cost invalid !");
 
         SystemConfig config = getConfig();
         config.setTransportCost(cost);
@@ -60,7 +60,7 @@ public class SystemConfigService {
 
         if (minTopUp < 0)
             throw new RuntimeException(
-                "Min top up invalide !");
+                "Min top up invalid !");
 
         SystemConfig config = getConfig();
         config.setMinTopUp(minTopUp);
@@ -72,7 +72,7 @@ public class SystemConfigService {
 
         if (hours < 1)
             throw new RuntimeException(
-                "Hours invalide !");
+                "Invalid Hours !");
 
         SystemConfig config = getConfig();
         config.setHoursBeforeExpiry(hours);
@@ -84,7 +84,8 @@ public class SystemConfigService {
 
         if (hours < 0)
             throw new RuntimeException(
-                "Cancel deadline invalide !");
+                "Ancel deadline invalid\r\n" + //
+                                        "!");
 
         SystemConfig config = getConfig();
         config.setCancelDeadline(hours);

@@ -21,6 +21,7 @@ class OrderDetailsPage extends StatefulWidget {
 class _OrderDetailsPageState extends State<OrderDetailsPage> {
   late OrderItem _order;
   bool _confirmingPickup = false;
+  bool _cancellingOrder  = false;   // ← NEW
 
   @override
   void initState() {
@@ -37,7 +38,6 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
         (o) => o.ordreId == _order.ordreId,
       );
       if (idx != -1) {
-        // void method — no await
         store.updateClientOrderStatus(idx, OrderStatus.picked);
         if (!mounted) return;
         setState(() => _order = _order.copyWith(status: OrderStatus.picked));
@@ -53,6 +53,90 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
       );
     } finally {
       if (mounted) setState(() => _confirmingPickup = false);
+    }
+  }
+
+  // ── Cancel Order → status = cancelled ────────────────────────
+  Future<void> _cancelOrder() async {
+    // Confirmation dialog first
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Cancel Order',
+          style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600),
+        ),
+        content: const Text(
+          'Are you sure you want to cancel this order?',
+          style: TextStyle(fontFamily: 'Inter', fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text(
+              'No',
+              style: TextStyle(color: Colors.grey, fontFamily: 'Poppins'),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text(
+              'Yes, Cancel',
+              style: TextStyle(
+                color: Colors.red,
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _cancellingOrder = true);
+    try {
+      final success =
+          await OrderStore.instance.cancelClientOrder(_order.ordreId);
+      if (!mounted) return;
+
+      if (success) {
+        // Update local state
+        final store = OrderStore.instance;
+        final idx = store.clientOrders
+            .indexWhere((o) => o.ordreId == _order.ordreId);
+        if (idx != -1) {
+          store.updateClientOrderStatus(idx, OrderStatus.cancelled);
+        }
+        setState(
+            () => _order = _order.copyWith(status: OrderStatus.cancelled));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Order cancelled successfully'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        Navigator.pop(context, OrderStatus.cancelled);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to cancel order. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _cancellingOrder = false);
     }
   }
 
@@ -77,8 +161,13 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isPicked = _order.status == OrderStatus.picked;
+    final isPicked    = _order.status == OrderStatus.picked;
     final isConfirmed = _order.status == OrderStatus.confirmed;
+    final isPending   = _order.status == OrderStatus.pending;
+    final isCancelled = _order.status == OrderStatus.cancelled;
+
+    // Cancel button is shown for pending OR confirmed (not picked, not cancelled)
+    final canCancel = isPending || isConfirmed;
 
     return Scaffold(
       backgroundColor: _kBackground,
@@ -114,7 +203,12 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
             if (_order.imagePath != null) ...[
               ClipRRect(
                 borderRadius: BorderRadius.circular(16),
-                child: AppNetworkImage(url: _order.imagePath!, width: double.infinity, height: 180, fit: BoxFit.cover)
+                child: AppNetworkImage(
+                  url: _order.imagePath!,
+                  width: double.infinity,
+                  height: 180,
+                  fit: BoxFit.cover,
+                ),
               ),
               const SizedBox(height: 16),
             ],
@@ -144,8 +238,9 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
             const SizedBox(height: 20),
 
             // ── Buttons ───────────────────────────────────────
+
+            // PAY NOW + CONFIRM PICKUP (confirmed only)
             if (!isPicked && isConfirmed) ...[
-              // PAY NOW
               SizedBox(
                 width: double.infinity,
                 height: 52,
@@ -171,7 +266,6 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
               ),
               const SizedBox(height: 12),
 
-              // CONFIRM PICKUP
               SizedBox(
                 width: double.infinity,
                 height: 52,
@@ -203,6 +297,43 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
                         ),
                 ),
               ),
+              const SizedBox(height: 12),
+            ],
+
+            // ── CANCEL ORDER (pending or confirmed) ───────────
+            if (canCancel) ...[
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: OutlinedButton(
+                  onPressed: _cancellingOrder ? null : _cancelOrder,
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.red, width: 1.5),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: _cancellingOrder
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.red,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          'Cancel Order',
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.red,
+                          ),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 12),
             ],
 
             // ── Picked success banner ─────────────────────────
@@ -230,6 +361,36 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                         color: _kPrimary500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+            // ── Cancelled banner ──────────────────────────────
+            if (isCancelled)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: Colors.red.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.cancel_outlined, color: Colors.red, size: 20),
+                    SizedBox(width: 8),
+                    Text(
+                      'Order Cancelled',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.red,
                       ),
                     ),
                   ],

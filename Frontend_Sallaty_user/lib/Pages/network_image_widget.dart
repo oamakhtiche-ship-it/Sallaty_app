@@ -22,7 +22,10 @@ class AppNetworkImage extends StatelessWidget {
   Widget build(BuildContext context) {
     final fullUrl = ApiService.buildImageUrl(url);
 
-    debugPrint('[AppNetworkImage] url="$fullUrl"');
+    assert(() {
+      debugPrint('[AppNetworkImage] url="${fullUrl.isNotEmpty ? fullUrl : '<empty — showing placeholder>'}"}');
+      return true;
+    }());
 
     if (fullUrl.isEmpty) {
       return placeholder ?? _defaultPlaceholder();

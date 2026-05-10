@@ -52,8 +52,8 @@ public class OffreFavoriController {
                 "success", true,
                 "isFavori", isFavori,
                 "message", isFavori
-                    ? "Ajouté aux favoris ❤️"
-                    : "Retiré des favoris 🤍"));
+                    ? "Added to favorites ❤️"
+                    : "Removed from the favorites 🤍"));
     }
 
     // ═══════════════════════════════════════════════

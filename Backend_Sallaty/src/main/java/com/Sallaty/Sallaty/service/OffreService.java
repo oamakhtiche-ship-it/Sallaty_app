@@ -21,109 +21,99 @@ import org.springframework.scheduling.annotation.Scheduled;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+
 @Service
 public class OffreService {
 
-    @Autowired
-    private OffreRepository offreRepository;
+    @Autowired private OffreRepository offreRepository;
+    @Autowired private CategoryRepository categoryRepository;
+    @Autowired private MarchandService marchandService;
+    @Autowired private RoleService roleService;
+    @Autowired private NotificationService notificationService;
 
-    @Autowired
-    private CategoryRepository categoryRepository;
-
-    @Autowired
-    private MarchandService marchandService;
-
-    @Autowired
-    private RoleService roleService;
-
-    @Autowired
-    private NotificationService notificationService;
-    
     @PersistenceContext
     private EntityManager entityManager;
 
+    // ═══════════════════════════════════════════════
+    //  createOffre()
+    // ═══════════════════════════════════════════════
+    @Transactional
+    public Offre createOffre(
+            int marchandId, CategoryType categoryType,
+            String title, String description,
+            double price, int quantity,
+            String wilaya, LocalDateTime expireAt,
+            String status) {
 
+        if (!roleService.isMarchand(marchandId))
+            throw new RuntimeException("You are not a merchant !");
+        if (title == null || title.isEmpty())
+            throw new IllegalArgumentException("Mandatory title !");
+        if (price <= 0)
+            throw new IllegalArgumentException("Invalid price !");
+        if (quantity <= 0)
+            throw new IllegalArgumentException("Invalid quantity!");
 
-    
-    
-    @Transactional  // ← ajoute ça
-public Offre createOffre(
-        int marchandId, CategoryType categoryType,
-        String title, String description,
-        double price, int quantity,
-        String wilaya, LocalDateTime expireAt,
-        String status) {
-
-    if (!roleService.isMarchand(marchandId))
-        throw new RuntimeException("Vous n'êtes pas marchand !");
-    if (title == null || title.isEmpty())
-        throw new IllegalArgumentException("Titre obligatoire !");
-    if (price <= 0)
-        throw new IllegalArgumentException("Prix invalide !");
-    if (quantity <= 0)
-        throw new IllegalArgumentException("Quantité invalide !");
-
-    Offre offre = new Offre();
-    offre.setMarchandId(marchandId);
-    offre.setCategoryType(categoryType);
-    offre.setTitle(title);
-    offre.setDescription(description);
-    offre.setPrice(price);
-    offre.setQuantity(quantity);
-    offre.setWilaya(wilaya);
-    offre.setOriginalPrice(price);
-    offre.setDiscountPrice(0);
-    offre.setExpireAt(expireAt);
-    offre.setStatus(status != null ? status : Offre.ACTIVE);
-
-    Offre savedOffre = offreRepository.save(offre);
-
-    entityManager.createNativeQuery(
-        "UPDATE users SET nb_offer = nb_offer + 1 WHERE id = :marchandId")
-        .setParameter("marchandId", marchandId)
-        .executeUpdate();
-
-    return savedOffre;
-}
-
-// updateOffre()
-public Offre updateOffre(
-        int offreId, int marchandId,
-        CategoryType categoryType, String title,
-        String description, double price,
-        int quantity, String wilaya,
-        LocalDateTime expireAt, String status) {
-
-    Offre offre = offreRepository.findById(offreId)
-        .orElseThrow(() ->
-            new RuntimeException("Offre non trouvée !"));
-
-    if (offre.getMarchandId() != marchandId)
-        throw new RuntimeException("Pas autorisé !");
-
-    if (categoryType != null)
-        offre.setCategoryType(categoryType);  // ✅
-    if (title != null && !title.isEmpty())
+        Offre offre = new Offre();
+        offre.setMarchandId(marchandId);
+        offre.setCategoryType(categoryType);
         offre.setTitle(title);
-    if (description != null && !description.isEmpty())
         offre.setDescription(description);
-    if (price > 0) {
         offre.setPrice(price);
-        offre.setOriginalPrice(price);
-    }
-    if (quantity > 0)
         offre.setQuantity(quantity);
-    if (wilaya != null && !wilaya.isEmpty())
         offre.setWilaya(wilaya);
-    if (expireAt != null)
+        offre.setOriginalPrice(price);
+        offre.setDiscountPrice(0);
         offre.setExpireAt(expireAt);
-    if (status != null && !status.isEmpty())
-        offre.setStatus(status);
+        offre.setStatus(status != null ? status : Offre.ACTIVE);
 
-    return offreRepository.save(offre);
-}
+        Offre savedOffre = offreRepository.save(offre);
 
+        entityManager.createNativeQuery(
+            "UPDATE users SET nb_offer = nb_offer + 1 WHERE id = :marchandId")
+            .setParameter("marchandId", marchandId)
+            .executeUpdate();
 
+        return savedOffre;
+    }
+
+    // ═══════════════════════════════════════════════
+    //  updateOffre()
+    // ═══════════════════════════════════════════════
+    public Offre updateOffre(
+            int offreId, int marchandId,
+            CategoryType categoryType, String title,
+            String description, double price,
+            int quantity, String wilaya,
+            LocalDateTime expireAt, String status) {
+
+        Offre offre = offreRepository.findById(offreId)
+            .orElseThrow(() -> new RuntimeException("Offrt found !"));
+
+        if (offre.getMarchandId() != marchandId)
+            throw new RuntimeException("Not allowed!");
+
+        if (categoryType != null)
+            offre.setCategoryType(categoryType);
+        if (title != null && !title.isEmpty())
+            offre.setTitle(title);
+        if (description != null && !description.isEmpty())
+            offre.setDescription(description);
+        if (price > 0) {
+            offre.setPrice(price);
+            offre.setOriginalPrice(price);
+        }
+        if (quantity > 0)
+            offre.setQuantity(quantity);
+        if (wilaya != null && !wilaya.isEmpty())
+            offre.setWilaya(wilaya);
+        if (expireAt != null)
+            offre.setExpireAt(expireAt);
+        if (status != null && !status.isEmpty())
+            offre.setStatus(status);
+
+        return offreRepository.save(offre);
+    }
 
     // ═══════════════════════════════════════════════
     //  archiveOffre()
@@ -131,13 +121,13 @@ public Offre updateOffre(
     public void archiveOffre(int offreId, int marchandId) {
 
         Offre offre = offreRepository.findById(offreId)
-            .orElseThrow(() -> new RuntimeException("Offre non trouvée !"));
+            .orElseThrow(() -> new RuntimeException("Offre not found !"));
 
         if (offre.getMarchandId() != marchandId)
-            throw new RuntimeException("Pas autorisé !");
+            throw new RuntimeException("Not allowed !");
 
         if (offre.getStatus().equals(Offre.ARCHIVED))
-            throw new RuntimeException("Offre déjà archivée !");
+            throw new RuntimeException(" Offer already archived!");
 
         offre.setStatus(Offre.ARCHIVED);
         offreRepository.save(offre);
@@ -149,19 +139,19 @@ public Offre updateOffre(
     public void blockOffre(int offreId) {
 
         Offre offre = offreRepository.findById(offreId)
-            .orElseThrow(() -> new RuntimeException("Offre non trouvée !"));
+            .orElseThrow(() -> new RuntimeException("Offre not found !"));
 
         if (offre.getStatus().equals(Offre.INACTIVE))
-            throw new RuntimeException("Offre déjà bloquée !");
+            throw new RuntimeException("Offer already blocked!");
 
         offre.setStatus(Offre.INACTIVE);
         offreRepository.save(offre);
 
         notificationService.sendNotification(
             offre.getMarchandId(),
-            "Offre bloquée ❌",
-            "Votre offre \"" + offre.getTitle() +
-            "\" a été bloquée par l'administrateur.",
+            "Offre blocked ❌",
+            "your offer \"" + offre.getTitle() +
+            "\" was blocked by the administrator.",
             NotificationType.OFFER_BLOCKED);
     }
 
@@ -171,19 +161,19 @@ public Offre updateOffre(
     public void unblockOffre(int offreId) {
 
         Offre offre = offreRepository.findById(offreId)
-            .orElseThrow(() -> new RuntimeException("Offre non trouvée !"));
+            .orElseThrow(() -> new RuntimeException("Offre not found !"));
 
         if (offre.getStatus().equals(Offre.ACTIVE))
-            throw new RuntimeException("Offre déjà active !");
+            throw new RuntimeException("Offre already active !");
 
         offre.setStatus(Offre.ACTIVE);
         offreRepository.save(offre);
 
         notificationService.sendNotification(
             offre.getMarchandId(),
-            "Offre débloquée ✅",
+            "Offre unlocked ✅",
             "Votre offre \"" + offre.getTitle() +
-            "\" a été débloquée par l'administrateur.",
+            "\" was unlocked by the administrator.",
             NotificationType.OFFER_BLOCKED);
     }
 
@@ -192,7 +182,7 @@ public Offre updateOffre(
     // ═══════════════════════════════════════════════
     public void deleteOffre(int offreId) {
         if (!offreRepository.existsById(offreId))
-            throw new RuntimeException("Offre non trouvée !");
+            throw new RuntimeException("Offre not found !");
         offreRepository.deleteById(offreId);
     }
 
@@ -203,17 +193,17 @@ public Offre updateOffre(
             int marchandId, int offreId, double discountPrice) {
 
         Offre offre = offreRepository.findById(offreId)
-            .orElseThrow(() -> new RuntimeException("Offre non trouvée !"));
+            .orElseThrow(() -> new RuntimeException("Offre not found !"));
 
         if (offre.getMarchandId() != marchandId)
-            throw new RuntimeException("Pas autorisé !");
+            throw new RuntimeException("noty allowed !");
 
         if (discountPrice <= 0)
-            throw new IllegalArgumentException("Discount price invalide !");
+            throw new IllegalArgumentException("Invalid discount price !");
 
         if (discountPrice >= offre.getPrice())
             throw new IllegalArgumentException(
-                "Discount doit être inférieur au prix !");
+                "Discount must be less than price !");
 
         offre.setOriginalPrice(offre.getPrice());
         offre.setDiscountPrice(discountPrice);
@@ -222,36 +212,31 @@ public Offre updateOffre(
 
         notificationService.sendNotification(
             marchandId,
-            "Promotion activée ✅",
-            "Votre offre \"" + offre.getTitle() +
-            "\" est en promotion à " + discountPrice + " DA.",
+            "Promotion activated ✅",
+            "your offer\"" + offre.getTitle() +
+            "\" is on sale at" + discountPrice + " DA.",
             NotificationType.NEW_DISCOUNT);
 
         return savedOffre;
     }
 
     // ═══════════════════════════════════════════════
-    //  uploadOffrePhoto() ✅ avec MultipartFile
+    //  uploadOffrePhoto()
     // ═══════════════════════════════════════════════
-    public String uploadOffrePhoto(
-            int offreId, MultipartFile file) {
+    public String uploadOffrePhoto(int offreId, MultipartFile file) {
 
         Offre offre = offreRepository.findById(offreId)
-            .orElseThrow(() -> new RuntimeException("Offre non trouvée !"));
+            .orElseThrow(() -> new RuntimeException("Offre not found !"));
 
-        // Supprimer l'ancienne photo si elle existe
         if (offre.getPhoto() != null && !offre.getPhoto().isEmpty()) {
             try {
                 Files.deleteIfExists(Paths.get(offre.getPhoto()));
-            } catch (Exception e) {
-                // ignore
-            }
+            } catch (Exception e) { /* ignore */ }
         }
 
-        // Sauvegarder le nouveau fichier
-        String fileName = offreId + "_" + file.getOriginalFilename();
+        String fileName  = offreId + "_" + file.getOriginalFilename();
         String uploadDir = "uploads/offres/";
-        String fullPath = uploadDir + fileName;
+        String fullPath  = uploadDir + fileName;
 
         try {
             java.nio.file.Path path = Paths.get(fullPath);
@@ -263,7 +248,6 @@ public Offre updateOffre(
 
         offre.setPhoto(fullPath);
         offreRepository.save(offre);
-
         return fullPath;
     }
 
@@ -273,16 +257,14 @@ public Offre updateOffre(
     public void deleteOffrePhoto(int offreId) {
 
         Offre offre = offreRepository.findById(offreId)
-            .orElseThrow(() -> new RuntimeException("Offre non trouvée !"));
+            .orElseThrow(() -> new RuntimeException("Offre not found !"));
 
         if (offre.getPhoto() == null || offre.getPhoto().isEmpty())
-            throw new RuntimeException("Pas de photo !");
+            throw new RuntimeException("No photo !");
 
         try {
             Files.deleteIfExists(Paths.get(offre.getPhoto()));
-        } catch (Exception e) {
-            // ignore
-        }
+        } catch (Exception e) { /* ignore */ }
 
         offre.setPhoto(null);
         offreRepository.save(offre);
@@ -293,7 +275,7 @@ public Offre updateOffre(
     // ═══════════════════════════════════════════════
     public void incrementReservations(int offreId) {
         Offre offre = offreRepository.findById(offreId)
-            .orElseThrow(() -> new RuntimeException("Offre non trouvée !"));
+            .orElseThrow(() -> new RuntimeException("Offre not found !"));
         offre.setNbReservations(offre.getNbReservations() + 1);
         offreRepository.save(offre);
     }
@@ -303,7 +285,7 @@ public Offre updateOffre(
     // ═══════════════════════════════════════════════
     public void decrementReservations(int offreId) {
         Offre offre = offreRepository.findById(offreId)
-            .orElseThrow(() -> new RuntimeException("Offre non trouvée !"));
+            .orElseThrow(() -> new RuntimeException("Offer not found !"));
         int nb = offre.getNbReservations();
         if (nb > 0) {
             offre.setNbReservations(nb - 1);
@@ -313,39 +295,43 @@ public Offre updateOffre(
 
     // ═══════════════════════════════════════════════
     //  decrementQuantity()
+    //  ✅ FIX : ne jamais écraser EXPIRED / INACTIVE / ARCHIVED
+    //  L'expiration est gérée uniquement par expireAt + scheduler
     // ═══════════════════════════════════════════════
-    // ═══════════════════════════════════════════════
-//  decrementQuantity() — met à jour le status
-// ═══════════════════════════════════════════════
-public void decrementQuantity(int offreId, int qty) {
-    Offre offre = offreRepository.findById(offreId)
-        .orElseThrow(() ->
-            new RuntimeException("Offre non trouvée !"));
+    public void decrementQuantity(int offreId, int qty) {
+        Offre offre = offreRepository.findById(offreId)
+            .orElseThrow(() ->
+                new RuntimeException("Offer not found !"));
 
-    int newQty = offre.getQuantity() - qty;
-    offre.setQuantity(Math.max(newQty, 0));
+        int newQty = offre.getQuantity() - qty;
+        offre.setQuantity(Math.max(newQty, 0));
 
-    // ✅ RÈGLE MÉTIER :
-    // quantity == 0 → SOLD_OUT (ou RESERVED selon ta logique)
-    // quantity > 0  → reste ACTIVE
-    if (newQty <= 0) {
-        offre.setQuantity(0);
-        offre.setStatus("RESERVED"); // ✅ plus de stock = RESERVED
+        // ✅ Statuts terminaux — on ne touche jamais à ces statuts
+        boolean isTerminal =
+            offre.getStatus().equals(Offre.EXPIRED)  ||
+            offre.getStatus().equals(Offre.INACTIVE) ||
+            offre.getStatus().equals(Offre.ARCHIVED);
+
+        // ✅ Seulement si non terminal et stock vide → RESERVED
+        if (!isTerminal && newQty <= 0) {
+            offre.setQuantity(0);
+            offre.setStatus(Offre.RESERVED);
+        }
+
+        offreRepository.save(offre);
     }
-    // Si quantity > 0, le statut reste ACTIVE
 
-    offreRepository.save(offre);
-}
     // ═══════════════════════════════════════════════
     //  incrementQuantity()
     // ═══════════════════════════════════════════════
     public void incrementQuantity(int offreId, int quantity) {
         Offre offre = offreRepository.findById(offreId)
-            .orElseThrow(() -> new RuntimeException("Offre non trouvée !"));
+            .orElseThrow(() -> new RuntimeException("Offer not found !"));
 
         offre.setQuantity(offre.getQuantity() + quantity);
 
-        if (offre.getStatus().equals(Offre.SOLD_OUT))
+        if (offre.getStatus().equals(Offre.SOLD_OUT) ||
+            offre.getStatus().equals(Offre.RESERVED))
             offre.setStatus(Offre.ACTIVE);
 
         offreRepository.save(offre);
@@ -386,39 +372,39 @@ public void decrementQuantity(int offreId, int qty) {
         }
     }
 
-// searchAndFilter()
-public List<Offre> searchAndFilter(
-        String title, String wilaya,
-        CategoryType categoryType,
-        Double minPrice, Double maxPrice,
-        String businessName, String sortBy) {
+    // ═══════════════════════════════════════════════
+    //  searchAndFilter()
+    // ═══════════════════════════════════════════════
+    public List<Offre> searchAndFilter(
+            String title, String wilaya,
+            CategoryType categoryType,
+            Double minPrice, Double maxPrice,
+            String businessName, String sortBy) {
 
-    String categoryStr = categoryType != null
-        ? categoryType.name() : null;
+        String categoryStr = categoryType != null
+            ? categoryType.name() : null;
 
-    List<Offre> offres = offreRepository.searchAndFilter(
-        title, wilaya, categoryStr,
-        minPrice, maxPrice, businessName);
+        List<Offre> offres = offreRepository.searchAndFilter(
+            title, wilaya, categoryStr,
+            minPrice, maxPrice, businessName);
 
-    if (sortBy == null) return offres;
+        if (sortBy == null) return offres;
 
-    switch (sortBy) {
-        case "date" -> offres.sort((a, b) ->
-            b.getCreatedAt().compareTo(a.getCreatedAt()));
-        case "price_asc" -> offres.sort((a, b) ->
-            Double.compare(a.getPrice(), b.getPrice()));
-        case "price_desc" -> offres.sort((a, b) ->
-            Double.compare(b.getPrice(), a.getPrice()));
-        case "reservations" -> offres.sort((a, b) ->
-            Integer.compare(
-                b.getNbReservations(),
-                a.getNbReservations()));
+        switch (sortBy) {
+            case "date"         -> offres.sort((a, b) ->
+                b.getCreatedAt().compareTo(a.getCreatedAt()));
+            case "price_asc"    -> offres.sort((a, b) ->
+                Double.compare(a.getPrice(), b.getPrice()));
+            case "price_desc"   -> offres.sort((a, b) ->
+                Double.compare(b.getPrice(), a.getPrice()));
+            case "reservations" -> offres.sort((a, b) ->
+                Integer.compare(
+                    b.getNbReservations(),
+                    a.getNbReservations()));
+        }
+
+        return offres;
     }
-
-    return offres;
-}
-
-
 
     // ═══════════════════════════════════════════════
     //  GET endpoints
@@ -427,22 +413,20 @@ public List<Offre> searchAndFilter(
         return offreRepository.findAll();
     }
 
+    // ✅ FIX : home page → ACTIVE seulement
+    //    RESERVED = stock épuisé, pas affichable sur la home
+    //    EXPIRED  = date dépassée, déjà exclu
     public List<Offre> getActivesAndReserved() {
-        return offreRepository.findByStatusIn(
-            List.of(Offre.ACTIVE, Offre.RESERVED));
+        return offreRepository.findByStatus(Offre.ACTIVE);
     }
 
     public List<Offre> getOffresByMarchand(int marchandId) {
         return offreRepository.findByMarchandId(marchandId);
     }
 
-    // getOffresByCategory()
-public List<Offre> getOffresByCategory(
-        CategoryType categoryType) {
-    return offreRepository
-        .findByCategoryType(categoryType);
-}
-
+    public List<Offre> getOffresByCategory(CategoryType categoryType) {
+        return offreRepository.findByCategoryType(categoryType);
+    }
 
     public List<Offre> getOffresByWilaya(String wilaya) {
         return offreRepository.findByWilaya(wilaya);
@@ -489,57 +473,54 @@ public List<Offre> getOffresByCategory(
             .orElseThrow(() -> new RuntimeException("Offre non trouvée !"));
     }
 
-    // convertToDTO()
-public OffreDTO convertToDTO(Offre offre) {
-    return new OffreDTO(
-        offre.getId(),
-        offre.getMarchandId(),
-        offre.getCategoryType(),    // ✅
-        offre.getTitle(),
-        offre.getDescription(),
-        offre.getPrice(),
-        offre.getQuantity(),
-        offre.getWilaya(),
-        offre.getStatus(),
-        offre.getOriginalPrice(),
-        offre.getDiscountPrice(),
-        offre.getExpireAt(),
-        offre.getNbReservations(),
-        offre.getNbFavoris(),
-        offre.getCreatedAt(),
-        offre.getPhoto());          // ✅
-}
-
-// ═══════════════════════════════════════════════
-//  expireOffresAutomatically()
-//  Lance toutes les 60 secondes
-//  Change ACTIVE/RESERVED → EXPIRED si expire_at dépassé
-// ═══════════════════════════════════════════════
-@Scheduled(fixedRate = 60000)
-@Transactional
-public void expireOffresAutomatically() {
-    List<Offre> toExpire = offreRepository
-        .findByStatusInAndExpireAtBefore(
-            List.of(Offre.ACTIVE, Offre.RESERVED),
-            LocalDateTime.now()
-        );
-
-    for (Offre offre : toExpire) {
-        offre.setStatus(Offre.EXPIRED);
-        offreRepository.save(offre);
-        System.out.println("[OffreService] Offre #" +
-            offre.getId() + " '" + offre.getTitle() +
-            "' → EXPIRED");
-
-        // ✅ Notifie le marchand
-        notificationService.sendNotification(
+    // ═══════════════════════════════════════════════
+    //  convertToDTO()
+    // ═══════════════════════════════════════════════
+    public OffreDTO convertToDTO(Offre offre) {
+        return new OffreDTO(
+            offre.getId(),
             offre.getMarchandId(),
-            "Offre expirée ⏰",
-            "Votre offre \"" + offre.getTitle() +
-            "\" a expiré automatiquement.",
-            NotificationType.EXPIRING_SOON);
+            offre.getCategoryType(),
+            offre.getTitle(),
+            offre.getDescription(),
+            offre.getPrice(),
+            offre.getQuantity(),
+            offre.getWilaya(),
+            offre.getStatus(),
+            offre.getOriginalPrice(),
+            offre.getDiscountPrice(),
+            offre.getExpireAt(),
+            offre.getNbReservations(),
+            offre.getNbFavoris(),
+            offre.getCreatedAt(),
+            offre.getPhoto());
+    }
+
+    // ═══════════════════════════════════════════════
+    //  expireOffresAutomatically()
+    //  Toutes les 60s — ACTIVE/RESERVED → EXPIRED
+    // ═══════════════════════════════════════════════
+    @Scheduled(fixedRate = 60000)
+    @Transactional
+    public void expireOffresAutomatically() {
+        List<Offre> toExpire = offreRepository
+            .findByStatusInAndExpireAtBefore(
+                List.of(Offre.ACTIVE, Offre.RESERVED),
+                LocalDateTime.now());
+
+        for (Offre offre : toExpire) {
+            offre.setStatus(Offre.EXPIRED);
+            offreRepository.save(offre);
+            System.out.println("[OffreService] Offre #" +
+                offre.getId() + " '" + offre.getTitle() +
+                "' → EXPIRED");
+
+            notificationService.sendNotification(
+                offre.getMarchandId(),
+                "Offer expired ⏰",
+                "your offer\"" + offre.getTitle() +
+                "\" expired automatically.",
+                NotificationType.EXPIRING_SOON);
+        }
     }
 }
-}
-
-
