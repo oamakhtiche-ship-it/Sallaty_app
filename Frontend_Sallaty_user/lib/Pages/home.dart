@@ -1025,8 +1025,8 @@ class _SearchPageState extends State<_SearchPage> {
   final TextEditingController _merchantController = TextEditingController();
   String _merchantQuery = '';
   List<_UserResult> _merchantResults = [];
-  List<_UserResult> _allMerchants    = [];   // ✅ cache complet
-  bool _merchantsLoaded = false;             // ✅ évite de recharger à chaque frappe
+  List<_UserResult> _allMerchants    = [];   
+  bool _merchantsLoaded = false;             
   bool _isLoadingMerchants = false;
   String? _merchantError;
   Timer? _merchantDebounce;
@@ -1182,7 +1182,7 @@ class _SearchPageState extends State<_SearchPage> {
       return;
     }
 
-    // ✅ Si déjà chargé, filtre local instantané
+    // Si déjà chargé, filtre local instantané
     if (_merchantsLoaded) {
       _filterMerchantsLocally(query.trim());
       return;
@@ -1193,7 +1193,7 @@ class _SearchPageState extends State<_SearchPage> {
     });
   }
 
-  // ✅ Filtre local sur le cache
+  // Filtre local sur le cache
   void _filterMerchantsLocally(String query) {
     final q = query.toLowerCase();
     setState(() {
@@ -1206,7 +1206,7 @@ class _SearchPageState extends State<_SearchPage> {
     });
   }
 
-  // ✅ Charge tous les marchands via /api/offres/active → marchandIds → /api/marchand/get/{id}
+  // Charge tous les marchands via /api/offres/active → marchandIds → /api/marchand/get/{id}
   // (car /api/marchand/verified retourne 403 — réservé aux admins)
   Future<void> _loadAllMerchants(String initialQuery) async {
     if (_merchantsLoaded) {
@@ -1271,7 +1271,7 @@ class _SearchPageState extends State<_SearchPage> {
     }
   }
 
-  // ✅ Récupère les infos d'un marchand : /api/marchand/get/{id} + /api/profile/public/{id}
+  //  Récupère les infos d'un marchand : /api/marchand/get/{id} + /api/profile/public/{id}
   Future<_UserResult?> _fetchMarchandInfo(int marchandId, String token) async {
     try {
       final headers = {
@@ -1338,7 +1338,7 @@ class _SearchPageState extends State<_SearchPage> {
     }
   }
 
-  // ✅ Fallback : /api/search → extrait marchandIds → _fetchMarchandInfo
+  //  Fallback : /api/search → extrait marchandIds → _fetchMarchandInfo
   Future<void> _searchMerchants(String query) async {
     if (!mounted) return;
     setState(() { _isLoadingMerchants = true; _merchantError = null; });
@@ -1676,7 +1676,7 @@ class _SearchPageState extends State<_SearchPage> {
             _merchantQuery   = '';
             _merchantResults = List.from(_allMerchants);
           } else if (!_merchantsLoaded && !_isLoadingMerchants) {
-            // ✅ Charge tous les marchands dès qu'on clique sur l'onglet
+            //  Charge tous les marchands dès qu'on clique sur l'onglet
             WidgetsBinding.instance.addPostFrameCallback((_) {
               _loadAllMerchants('');
             });
@@ -1878,7 +1878,7 @@ class _SearchPageState extends State<_SearchPage> {
                       ],
                     ],
                   ),
-                  // ✅ "Chez NomGerant" sous le nom boutique
+                  // "Chez NomGerant" sous le nom boutique
                   if (subName.isNotEmpty) ...[
                     const SizedBox(height: 1),
                     Text(

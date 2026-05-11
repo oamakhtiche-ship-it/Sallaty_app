@@ -6,9 +6,7 @@ import 'conversation.dart';
 const String kBaseUrl = 'https://headstand-rosy-chlorine.ngrok-free.dev';
 const String kApiUrl  = '$kBaseUrl/api';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MODÈLE — ConversationSummary
-// ─────────────────────────────────────────────────────────────────────────────
+
 class ConversationSummary {
   final String conversationId;
   final int    otherId;
@@ -40,9 +38,7 @@ class ConversationSummary {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MODÈLE — Merchant
-// ─────────────────────────────────────────────────────────────────────────────
+
 class Merchant {
   final int    id;
   final String name;

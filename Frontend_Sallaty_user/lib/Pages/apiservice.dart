@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:flutter/foundation.dart'; // kIsWeb
+import 'package:flutter/foundation.dart'; 
 import 'package:http/http.dart' as http;
 import 'usersession.dart';
 
@@ -55,17 +55,13 @@ class ApiService {
     catch (_) { return {'message': res.body}; }
   }
 
-  // ─────────────────────────────────────────────────────────────
-  //  HELPER PRIVÉ — ajoute le fichier à la requête multipart
-  //  ✅ Android / iOS : fromPath()  → lit depuis disque, pas de RAM
-  //  ✅ Web           : fromBytes() → dart:io indisponible
-  // ─────────────────────────────────────────────────────────────
+
   static Future<void> _attachFile(
     http.MultipartRequest request,
     String fieldName,
-    String? filePath,      // nullable — inutilisé sur Web
+    String? filePath,      
     String filename,
-    Uint8List? webBytes,   // seulement sur Web
+    Uint8List? webBytes,   
   ) async {
     if (kIsWeb) {
       request.files.add(

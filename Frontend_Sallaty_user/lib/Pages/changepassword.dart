@@ -1,18 +1,4 @@
-// ═══════════════════════════════════════════════════════════════════
-// changepassword.dart — Change Password Page
-//
-// BACKEND ENDPOINT:
-//   PUT /api/profile/password
-//     Body (form-urlencoded): oldPassword + newPassword + confirm
-//     Header: Authorization: Bearer <token>
-//     200: { "message": "Password updated successfully" }
-//
-// FLOW:
-//   EditProfilePage → bouton "Change" (Password row)
-//   → ChangePasswordPage
-//   → PUT /api/profile/password
-//   → pop() si succès
-// ═══════════════════════════════════════════════════════════════════
+
 
 import 'package:flutter/material.dart';
 import 'apiservice.dart';
@@ -58,7 +44,7 @@ Future<void> _save() async {
     final error = _validate();
     if (error != null) { _showSnack(error, isError: true); return; }
 
-    // ✅ DEBUG — voir si le token est présent
+    
     print('=== TOKEN: ${UserSession().token}');
     print('=== ID: ${UserSession().id}');
 
@@ -88,10 +74,7 @@ Future<void> _save() async {
       backgroundColor: isError ? Colors.redAccent : const Color(0xFF72A843),
     ));
   }
-
-  // ══════════════════════════════════════════════════════════════
-  //  BUILD — même UI que EditProfilePage (fond blanc, vert Sallaty)
-  // ══════════════════════════════════════════════════════════════
+═
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -226,7 +209,7 @@ Future<void> _save() async {
           child: TextField(
             controller: controller,
             obscureText: !show,
-            onChanged: (_) => setState(() {}),   // ✅ force rebuild pour l'indicateur
+            onChanged: (_) => setState(() {}),   
             decoration: InputDecoration(
               border: InputBorder.none,
               suffixIcon: IconButton(

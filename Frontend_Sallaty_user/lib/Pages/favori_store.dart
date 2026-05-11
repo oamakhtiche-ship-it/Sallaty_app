@@ -14,7 +14,6 @@ class FavoriStore extends ChangeNotifier {
 
   Set<String> get favoriIds => Set.unmodifiable(_favoriIds);
 
-  // ✅ Compare toujours en String propre
   bool isFavori(String offreId) {
     final id = offreId.trim().replaceAll('.0', '');
     return _favoriIds.any((e) => e.trim() == id);

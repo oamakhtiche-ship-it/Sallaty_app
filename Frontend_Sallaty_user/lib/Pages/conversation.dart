@@ -367,7 +367,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     });
   }
 
-  // ── Ouvre MerchantProfilePage quand on clique sur le nom ──────────────────
+  
   void _openMerchantProfile() {
     Navigator.push(
       context,
@@ -414,7 +414,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: GestureDetector(
-          // ✅ Clic sur le titre → ouvre le profil du marchand
+          
           onTap: _openMerchantProfile,
           child: Row(
             children: [
@@ -437,7 +437,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                           )
                         : null,
                   ),
-                  // ✅ Point vert UNIQUEMENT si STOMP vraiment connecté
+                  
                   if (_stompReady)
                     Positioned(
                       right:  0,
@@ -455,7 +455,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 ],
               ),
               const SizedBox(width: 10),
-              // Nom — cliquable pour ouvrir le profil
+              
               Flexible(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -471,7 +471,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                         color:       Color(0xFF1A1A1A),
                       ),
                     ),
-                    // ✅ Sous-titre uniquement si vraiment connecté
+                   
                     if (_stompReady)
                       const Text(
                         'En ligne',

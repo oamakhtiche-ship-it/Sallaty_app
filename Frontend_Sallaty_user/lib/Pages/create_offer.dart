@@ -1,6 +1,4 @@
-// lib/Pages/create_offer.dart
-// ✅ Android + Web compatible
-// ✅ kIsWeb : utilise Uint8List sur Web, File sur Android/iOS
+
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -96,7 +94,7 @@ class _CreateOfferPageState extends State<CreateOfferPage> {
   String? _selectedFoodType;
   String? _selectedWilaya;
   String? _selectedStatus;
-  DateTime? _selectedDate; // ✅ Date choisie via calendrier
+  DateTime? _selectedDate; 
 
   XFile? _pickedImage;
   Uint8List? _imagePreviewBytes;
@@ -124,14 +122,14 @@ class _CreateOfferPageState extends State<CreateOfferPage> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: Color(0xFF72A843),    // header + jour sélectionné
-              onPrimary: Colors.white,        // texte sur vert
-              onSurface: Color(0xFF222222),   // texte des jours
+              primary: Color(0xFF72A843),    
+              onPrimary: Colors.white,        
+              onSurface: Color(0xFF222222),   
               surface: Colors.white,
             ),
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFF72A843), // OK / CANCEL
+                foregroundColor: const Color(0xFF72A843), 
               ),
             ),
             dialogTheme: DialogThemeData(
@@ -451,7 +449,6 @@ class _CreateOfferPageState extends State<CreateOfferPage> {
               GestureDetector(
                 onTap: _pickDate,
                 child: AbsorbPointer(
-                  // ✅ bloque le clavier, seul le calendrier s'ouvre
                   child: TextFormField(
                     controller: _dateCtrl,
                     style:
@@ -464,7 +461,6 @@ class _CreateOfferPageState extends State<CreateOfferPage> {
                       fillColor: const Color(0xFFF5F5F5),
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 14),
-                      // ✅ icône croix pour effacer, calendrier si vide
                       suffixIcon: _selectedDate != null
                           ? IconButton(
                               icon: const Icon(Icons.clear,
