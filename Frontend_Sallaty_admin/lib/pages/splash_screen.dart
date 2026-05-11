@@ -151,7 +151,7 @@ class _SplashScreenState extends State<SplashScreen>
                 child: SlideTransition(
                   position: _vegsSlideBottom,
                   child: Image.asset(
-                    'assets/images/splashscreeen.png',
+                    'assets/Splashscreen.jpg',
                     width: size.width,
                     height: size.height,
                     fit: BoxFit.fill,
@@ -168,13 +168,14 @@ class _SplashScreenState extends State<SplashScreen>
                     child: FadeTransition(
                       opacity: _logoOpacity,
                       child: Image.asset(
-                        'assets/images/logo.png',
+                        'assets/logo.png',
                         width: size.width * 0.40,
                         fit: BoxFit.contain,
                       ),
                     ),
                   ),
                   const SizedBox(height: 20),
+
                   FadeTransition(
                     opacity: _textOpacity,
                     child: SlideTransition(
@@ -182,7 +183,7 @@ class _SplashScreenState extends State<SplashScreen>
                       child: Text(
                         'Sallaty',
                         style: TextStyle(
-                          fontFamily: 'Georgia',
+                          fontFamily: 'Poppins',
                           fontSize: 38,
                           fontStyle: FontStyle.italic,
                           fontWeight: FontWeight.w400,

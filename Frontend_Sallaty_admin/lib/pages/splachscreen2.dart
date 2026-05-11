@@ -54,7 +54,7 @@ class SplashScreen2 extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Image.asset(
-                  "assets/images/image2.png",
+                  "assets/image2.png",
                   fit: BoxFit.contain,
                 ),
               ),
@@ -69,7 +69,7 @@ class SplashScreen2 extends StatelessWidget {
                     "  pastries, and more. Quality food shouldn't go to waste.",
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 25,
+                  fontSize: 20,
                   color: Color(0xFF000000),
                   height: 1.5,
                 ),

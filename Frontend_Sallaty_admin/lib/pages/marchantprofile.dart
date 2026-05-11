@@ -1,13 +1,14 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'merchantsorders_merchant.dart'; // MerchantActivityPage
+import 'package:url_launcher/url_launcher.dart';
+import 'merchantsorders_merchant.dart';
 import 'usersession.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  CONSTANTS
 // ─────────────────────────────────────────────────────────────────────────────
-const _kBase            = 'http://localhost:8080';
+const _kBase            = 'https://headstand-rosy-chlorine.ngrok-free.dev';
 const _kPrimary         = Color(0xFF72A843);
 const _kPrimaryDark     = Color(0xFF02531E);
 const _kCardBg          = Color(0xFFB9D4A1);
@@ -24,10 +25,10 @@ class _MerchantDetailApi {
   static final _client = http.Client();
 
   static Map<String, String> _h(String token) => {
-        'Content-Type': 'application/json',
-        'ngrok-skip-browser-warning': 'true',
-        'Authorization': 'Bearer $token',
-      };
+    'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': 'true',
+    'Authorization': 'Bearer $token',
+  };
 
   static Future<void> blockUser(int id, String token) async {
     final res = await _client.put(
@@ -52,6 +53,17 @@ class _MerchantDetailApi {
         Uri.parse('$_kBase/api/users/delete/$id'), headers: _h(token));
     if (res.statusCode != 200) throw Exception('Suppression échouée');
   }
+
+  // ✅ Fetch full merchant profile including tradeRegister
+  static Future<Map<String, dynamic>> getMarchandProfile(
+      int userId, String token) async {
+    final res = await _client.get(
+        Uri.parse('$_kBase/api/marchand/get/$userId'), headers: _h(token));
+    if (res.statusCode == 200) {
+      return jsonDecode(res.body) as Map<String, dynamic>;
+    }
+    throw Exception('Profil marchand introuvable');
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -61,8 +73,6 @@ class MerchantDetailPage extends StatefulWidget {
   final Map<String, dynamic> merchant;
   final ValueChanged<String> onStatusChanged;
   final VoidCallback onDeleted;
-
-  /// JWT admin token — optional, read from UserSession if absent
   final String? token;
 
   const MerchantDetailPage({
@@ -80,11 +90,10 @@ class MerchantDetailPage extends StatefulWidget {
 class _MerchantDetailPageState extends State<MerchantDetailPage> {
   late String _status;
   late Map<String, dynamic> _merchant;
+  bool _loadingProfile = false;
 
-  // Token: prefer passed token, fallback to UserSession
   String get _token => widget.token ?? UserSession().token ?? '';
 
-  // Extract numeric merchant ID
   int get _merchantId {
     final raw = _merchant['id'] ?? _merchant['userId'] ?? 0;
     if (raw is int) return raw;
@@ -96,10 +105,29 @@ class _MerchantDetailPageState extends State<MerchantDetailPage> {
     super.initState();
     _merchant = Map<String, dynamic>.from(widget.merchant);
     _status   = _merchant['status'] as String? ?? 'Active';
+    // ✅ Fetch full profile to get tradeRegister
+    _fetchFullProfile();
+  }
+
+  // ── Fetch full merchant profile ────────────────────────────────────────────
+  Future<void> _fetchFullProfile() async {
+    setState(() => _loadingProfile = true);
+    try {
+      final profile = await _MerchantDetailApi.getMarchandProfile(
+          _merchantId, _token);
+      if (mounted) {
+        setState(() {
+          // Merge fetched data into _merchant
+          _merchant = {..._merchant, ...profile};
+          _loadingProfile = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _loadingProfile = false);
+    }
   }
 
   // ── Actions ────────────────────────────────────────────────────────────────
-
   Future<void> _changeStatus(String newStatus) async {
     try {
       if (newStatus == 'Blocked') {
@@ -147,8 +175,21 @@ class _MerchantDetailPageState extends State<MerchantDetailPage> {
     );
   }
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
+  // ✅ Open PDF in browser
+  Future<void> _openPdf(String path) async {
+    if (path.isEmpty) return;
+    final url = path.startsWith('http')
+        ? path
+        : '$_kBase/$path';
+    final uri = Uri.parse(url);
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      _showSnack('Cannot open PDF', isError: true);
+    }
+  }
 
+  // ── Helpers ────────────────────────────────────────────────────────────────
   void _showSnack(String msg, {bool isError = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -159,44 +200,48 @@ class _MerchantDetailPageState extends State<MerchantDetailPage> {
 
   Future<bool> _confirmDialog(String title, String content) async {
     return await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16)),
-            title: Text(title,
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold, color: _kPrimaryDark)),
-            content: Text(content,
-                style: const TextStyle(fontSize: 13, color: Colors.black54)),
-            actions: [
-              TextButton(
-                  onPressed: () => Navigator.pop(ctx, false),
-                  child: const Text('Cancel',
-                      style: TextStyle(color: Colors.grey))),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red.shade400,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
-                ),
-                onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Delete',
-                    style: TextStyle(color: Colors.white, fontSize: 13)),
-              ),
-            ],
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16)),
+        title: Text(title,
+            style: const TextStyle(
+                fontWeight: FontWeight.bold, color: _kPrimaryDark)),
+        content: Text(content,
+            style: const TextStyle(fontSize: 13, color: Colors.black54)),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel',
+                  style: TextStyle(color: Colors.grey))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade400,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete',
+                style: TextStyle(color: Colors.white, fontSize: 13)),
           ),
-        ) ??
+        ],
+      ),
+    ) ??
         false;
   }
 
   // ── Build ──────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     final m         = _merchant;
     final isActive  = _status == 'Active';
     final isBlocked = _status == 'Blocked';
     final isPending = _status == 'Pending';
+
+    // Trade register path
+    final tradeRegisterPath =
+        m['tradeRegister']?.toString() ??
+            m['trade_register']?.toString() ?? '';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FBF6),
@@ -221,6 +266,14 @@ class _MerchantDetailPageState extends State<MerchantDetailPage> {
                       color: _kPrimary,
                     ),
                   ),
+                  const Spacer(),
+                  // Loading indicator while fetching profile
+                  if (_loadingProfile)
+                    const SizedBox(
+                      width: 18, height: 18,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: _kPrimary),
+                    ),
                 ],
               ),
             ),
@@ -250,13 +303,13 @@ class _MerchantDetailPageState extends State<MerchantDetailPage> {
                                     : null,
                                 child: m['photo'] == null
                                     ? Text(
-                                        _initials(m['name'] ?? '?'),
-                                        style: const TextStyle(
-                                          color: _kPrimaryDark,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 18,
-                                        ),
-                                      )
+                                  _initials(m['name'] ?? '?'),
+                                  style: const TextStyle(
+                                    color: _kPrimaryDark,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
+                                  ),
+                                )
                                     : null,
                               ),
                               const SizedBox(width: 14),
@@ -265,7 +318,7 @@ class _MerchantDetailPageState extends State<MerchantDetailPage> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      m['name'] ?? '—',
+                                      m['name'] ?? m['fullName'] ?? '—',
                                       style: const TextStyle(
                                         fontSize: 15,
                                         fontWeight: FontWeight.bold,
@@ -326,9 +379,11 @@ class _MerchantDetailPageState extends State<MerchantDetailPage> {
                     _sectionCard(rows: [
                       _infoRow('Name',    m['firstName'] ?? _firstName(m['name'])),
                       _infoRow('Surname', m['lastName']  ?? _lastName(m['name'])),
-                      _infoRow('ID User', m['userId']?.toString() ?? '#${m['id'] ?? '000000'}'),
+                      _infoRow('ID User', m['userId']?.toString() ??
+                          '#${m['id'] ?? '000000'}'),
                       _infoRow('Email',   m['email'] ?? ''),
-                      _infoRow('Phone',   m['phone'] ?? '-'),
+                      _infoRow('Phone',
+                          m['phone'] ?? m['phoneNumber'] ?? '-'),
                       _infoRow('Inscription date',
                           m['inscriptionDate'] ?? m['createdAt'] ?? '-'),
                       _infoRow('Last connexion',
@@ -348,10 +403,17 @@ class _MerchantDetailPageState extends State<MerchantDetailPage> {
                     ),
                     const SizedBox(height: 8),
                     _sectionCard(rows: [
-                      _infoRow('Store Name',     m['storeName'] ?? '-'),
-                      _infoRow('Business Type',  m['businessType'] ?? '-'),
-                      _infoRow('Address',         m['address'] ?? '-',
-                          isLast: true),
+                      _infoRow('Store Name',
+                          m['storeName'] ?? m['businessName'] ?? '-'),
+                      _infoRow('Business Type',
+                          m['businessType'] ?? '-'),
+                      _infoRow('Address',
+                          m['address'] ?? m['wilaya'] ?? '-'),
+                      _infoRow('Status Merchant',
+                          m['statusMarchand']?.toString() ??
+                              m['status_marchand']?.toString() ?? '-'),
+                      // ✅ Trade Register row
+                      _tradeRegisterRow(tradeRegisterPath),
                     ]),
                     const SizedBox(height: 24),
 
@@ -383,7 +445,7 @@ class _MerchantDetailPageState extends State<MerchantDetailPage> {
                         if (isPending) ...[
                           Expanded(
                             child: _fullButton(
-                              label: 'Verify',
+                              label: 'Accept',
                               color: _kPrimary,
                               textColor: _kWhite,
                               onTap: () => _changeStatus('Active'),
@@ -418,7 +480,8 @@ class _MerchantDetailPageState extends State<MerchantDetailPage> {
                           borderRadius: BorderRadius.circular(14),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF72A843).withValues(alpha: 0.4),
+                              color: const Color(0xFF72A843)
+                                  .withValues(alpha: 0.4),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
@@ -514,13 +577,14 @@ class _MerchantDetailPageState extends State<MerchantDetailPage> {
         border: isLast
             ? null
             : const Border(
-                bottom: BorderSide(color: _kBorder, width: 0.8)),
+            bottom: BorderSide(color: _kBorder, width: 0.8)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label,
-              style: const TextStyle(fontSize: 12, color: Color(0xFF000000))),
+              style: const TextStyle(
+                  fontSize: 12, color: Color(0xFF000000))),
           Flexible(
             child: Text(value,
                 textAlign: TextAlign.end,
@@ -534,11 +598,66 @@ class _MerchantDetailPageState extends State<MerchantDetailPage> {
     );
   }
 
+  // ✅ Trade Register row with PDF button
+  Widget _tradeRegisterRow(String path) {
+    final hasFile = path.isNotEmpty;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text(
+            'Trade Register',
+            style: TextStyle(fontSize: 12, color: Color(0xFF000000)),
+          ),
+          _loadingProfile
+              ? const SizedBox(
+            width: 16, height: 16,
+            child: CircularProgressIndicator(
+                strokeWidth: 2, color: _kPrimary),
+          )
+              : hasFile
+              ? GestureDetector(
+            onTap: () => _openPdf(path),
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFD0E2C0),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.picture_as_pdf,
+                      size: 14, color: Color(0xFF02531E)),
+                  SizedBox(width: 4),
+                  Text(
+                    'PDF →',
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF02531E)),
+                  ),
+                ],
+              ),
+            ),
+          )
+              : const Text(
+            'Not uploaded',
+            style: TextStyle(fontSize: 12, color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _badge(String label, Color bg, Color textColor) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration:
-          BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6)),
+      BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6)),
       child: Text(label,
           style: TextStyle(
               fontSize: 9, fontWeight: FontWeight.w600, color: textColor)),
@@ -549,16 +668,21 @@ class _MerchantDetailPageState extends State<MerchantDetailPage> {
     Color bg, textColor;
     switch (status) {
       case 'Active':
-        bg = _kMerchantBadgeBg; textColor = _kMerchantBadgeTx; break;
+        bg = _kMerchantBadgeBg;
+        textColor = _kMerchantBadgeTx;
+        break;
       case 'Blocked':
-        bg = const Color(0xFFFFBEBE); textColor = Colors.red; break;
+        bg = const Color(0xFFFFBEBE);
+        textColor = Colors.red;
+        break;
       default: // Pending
-        bg = const Color(0xFFFFF3CD); textColor = const Color(0xFF856404);
+        bg = const Color(0xFFFFF3CD);
+        textColor = const Color(0xFF856404);
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration:
-          BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6)),
+      BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6)),
       child: Text(status,
           style: TextStyle(
               fontSize: 9, fontWeight: FontWeight.w600, color: textColor)),

@@ -7,7 +7,7 @@ const kPrimary     = Color(0xFF72A843);
 const kPrimaryDark = Color(0xFF395422);
 const kCardBg      = Color(0xFFE8F5C8);
 const kWhite       = Color(0xFFFFFFFF);
-const _kBaseUrl    = 'http://localhost:8080';
+const _kBaseUrl    = 'https://headstand-rosy-chlorine.ngrok-free.dev';
 
 // ─── API ──────────────────────────────────────────────────────────────────────
 
@@ -18,26 +18,24 @@ class _NotifApi {
     required String token,
     required String title,
     required String message,
-    required String recipients, // 'ALL' | 'CLIENTS' | 'MERCHANTS'
+    required String recipients,
   }) async {
     final res = await http.post(
       Uri.parse('$_kBaseUrl/api/notifications/broadcast'),
       headers: {
         'Authorization': 'Bearer $token',
-        'Content-Type':  'application/x-www-form-urlencoded',
+        'Content-Type':  'application/json',  // ← JSON
       },
-      body: {
+      body: jsonEncode({                        // ← jsonEncode
         'title':      title,
         'message':    message,
         'recipients': recipients,
-      },
+      }),
     );
     if (res.statusCode != 200) {
       _throwError(res, 'broadcast');
     }
   }
-
-  /// POST /api/notifications/support/{userId}
   static Future<void> support({
     required String token,
     required int    userId,
@@ -48,15 +46,17 @@ class _NotifApi {
       Uri.parse('$_kBaseUrl/api/notifications/support/$userId'),
       headers: {
         'Authorization': 'Bearer $token',
-        'Content-Type':  'application/x-www-form-urlencoded',
+        'Content-Type':  'application/json',  // ← JSON
       },
-      body: {'title': title, 'message': message},
+      body: jsonEncode({                        // ← jsonEncode
+        'title':   title,
+        'message': message,
+      }),
     );
     if (res.statusCode != 200) {
       _throwError(res, 'support');
     }
   }
-
   /// PUT /api/users/block/{userId}
   static Future<void> blockUser({
     required String token,
@@ -407,33 +407,33 @@ class _NotificationsPageState extends State<NotificationsPage> {
                     _warnLoading
                         ? _loadingBtn()
                         : Row(
-                            children: [
-                              Expanded(
-                                child: _outlineButton(
-                                  label:     'Send warning',
-                                  color:     const Color(0xFFFFF3CD),
-                                  textColor: const Color(0xFF856404),
-                                  onTap:     _sendWarning,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: _outlineButton(
-                                  label:     'Block directly',
-                                  color:     const Color(0xFFFFD6D6),
-                                  textColor: Colors.red,
-                                  onTap: () {
-                                    final user = _selectedWarnUser;
-                                    if (user == null) {
-                                      _showSnack('Please select a user');
-                                      return;
-                                    }
-                                    _confirmBlock(user);
-                                  },
-                                ),
-                              ),
-                            ],
+                      children: [
+                        Expanded(
+                          child: _outlineButton(
+                            label:     'Send warning',
+                            color:     const Color(0xFFFFF3CD),
+                            textColor: const Color(0xFF856404),
+                            onTap:     _sendWarning,
                           ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _outlineButton(
+                            label:     'Block directly',
+                            color:     const Color(0xFFFFD6D6),
+                            textColor: Colors.red,
+                            onTap: () {
+                              final user = _selectedWarnUser;
+                              if (user == null) {
+                                _showSnack('Please select a user');
+                                return;
+                              }
+                              _confirmBlock(user);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -626,13 +626,13 @@ class _NotificationsPageState extends State<NotificationsPage> {
                   ),
                   child: selected
                       ? Center(
-                          child: Container(
-                            width: 8, height: 8,
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle, color: kPrimary,
-                            ),
-                          ),
-                        )
+                    child: Container(
+                      width: 8, height: 8,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle, color: kPrimary,
+                      ),
+                    ),
+                  )
                       : null,
                 ),
                 const SizedBox(width: 5),

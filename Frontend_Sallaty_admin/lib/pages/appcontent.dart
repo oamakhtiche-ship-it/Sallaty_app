@@ -79,19 +79,8 @@ class AppContentScreen extends StatelessWidget {
                   );
                 },
               ),
-              const SizedBox(height: 12),
-              _AppContentTile(
-                icon: Icons.headset_mic_outlined,
-                label: 'Help / FAQ',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const HelpPage(),
-                    ),
-                  );
-                },
-              ),
+
+
               const SizedBox(height: 12),
               _AppContentTile(
                 icon: Icons.info_outline_rounded,

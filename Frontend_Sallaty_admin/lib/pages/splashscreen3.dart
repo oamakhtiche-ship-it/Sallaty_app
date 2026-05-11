@@ -35,7 +35,7 @@ class SplashScreen3 extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Image.asset(
-                  "assets/images/image3.png",
+                  "assets/image3.png",
                   fit: BoxFit.contain,
                 ),
               ),
@@ -50,7 +50,7 @@ class SplashScreen3 extends StatelessWidget {
                     "Rescue meals for up to 70% off and enjoy guilt-free dining.",
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 25,
+                  fontSize: 20,
                   color: Color(0xFF000000),
                   height: 1.5,
                 ),

@@ -20,7 +20,7 @@ class _PrivacyPolicyPageState extends State<PrivacyPolicyPage> {
   //  CONSTANTS
   // ─────────────────────────────────────────────
   static const String _baseUrl =
-      'http://localhost:8080';
+      'https://headstand-rosy-chlorine.ngrok-free.dev';
 
   // ─────────────────────────────────────────────
   //  STATE

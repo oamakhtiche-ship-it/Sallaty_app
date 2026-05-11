@@ -20,15 +20,20 @@ dependencies:
   dio: ^5.4.0
   intl: ^0.18.1
   web_socket_channel: ^2.4.0
+  http: ^1.2.1
+  shared_preferences: ^2.2.3
+  url_launcher: ^6.2.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.1        # ← ajouté
 
-    # ── HTTP & session ──────────────────────────────────────────────────────────
-  http: ^1.2.1
-  shared_preferences: ^2.2.3
+flutter_icons:                            # ← ajouté
+  android: true
+  ios: true
+  image_path: "assets/icon1.png"
 
 flutter:
   uses-material-design: true
@@ -46,6 +51,10 @@ flutter:
           weight: 600
 
   assets:
+    - assets/image1.png
+    - assets/image2.png
+    - assets/image3.png
+    - assets/Splashscreen.jpg
     - assets/forgot_password.png
     - assets/enter_mobile.png
     - assets/reset_password.png
@@ -53,3 +62,4 @@ flutter:
     - assets/bank_card.png
     - assets/noorder.png
     - assets/logo.png
+    - assets/icon1.png

@@ -1,4 +1,4 @@
-package com.example.saallatyy;
+package com.sallaty.admin;
 
 import io.flutter.embedding.android.FlutterActivity;
 

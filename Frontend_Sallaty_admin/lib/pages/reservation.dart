@@ -4,9 +4,20 @@ import 'package:dotted_border/dotted_border.dart';
 import 'package:http/http.dart' as http;
 import 'usersession.dart';
 
-const _base    = 'http://localhost:8080';
-const kPrimary = Color(0xFF72A843);
+const _base     = 'https://headstand-rosy-chlorine.ngrok-free.dev';
+const kPrimary  = Color(0xFF72A843);
 const kTextDark = Color(0xFF2D2E2D);
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  IMAGE URL HELPER — converts relative paths to full URLs
+// ─────────────────────────────────────────────────────────────────────────────
+String? fullImageUrl(String? path) {
+  if (path == null || path.trim().isEmpty) return null;
+  final p = path.trim();
+  if (p.startsWith('http://') || p.startsWith('https://')) return p;
+  if (p.startsWith('//')) return 'https:$p';
+  return '$_base${p.startsWith('/') ? '' : '/'}$p';
+}
 
 Map<String, String> _headers() => {
   'Content-Type': 'application/json',
@@ -14,6 +25,9 @@ Map<String, String> _headers() => {
   'ngrok-skip-browser-warning': 'true',
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  MODEL
+// ─────────────────────────────────────────────────────────────────────────────
 class ReservationItem {
   final int    id;
   final int    clientId;
@@ -25,6 +39,8 @@ class ReservationItem {
   final String status;
   final String? payment;
   final String? createdAt;
+  // ✅ NEW: client photo URL (fully qualified)
+  final String? clientPhotoUrl;
 
   ReservationItem({
     required this.id,
@@ -37,33 +53,38 @@ class ReservationItem {
     required this.status,
     this.payment,
     this.createdAt,
+    this.clientPhotoUrl,
   });
 
   factory ReservationItem.fromJson(Map<String, dynamic> j) {
-    // ✅ Support both raw Ordre AND enriched DTO formats
     final clientName = _buildClientName(j);
     final offreName  = j['offreName']  ?? j['title'] ?? j['offreTitle'] ?? 'Offer';
 
+    // ✅ FIX: extract and normalize the client photo URL
+    final rawPhoto = j['clientPhoto']?.toString()
+        ?? j['profileImage']?.toString()
+        ?? j['photo']?.toString()
+        ?? j['clientProfileImage']?.toString();
+
     return ReservationItem(
-      id:          j['ordreId']   ?? j['id']       ?? 0,
-      clientId:    j['clientId']  ?? 0,
-      offreId:     j['offreId']   ?? 0,
-      offreName:   offreName,
-      clientName:  clientName,
-      quantity:    j['quantity']  ?? 1,
-      totalPrice:  (j['totalPrice'] ?? 0).toDouble(),
-      status:      j['status']    ?? 'PENDING',
-      payment:     j['paymentMethod'] ?? j['payment'],
-      createdAt:   j['createdAt']?.toString(),
+      id:             j['ordreId']   ?? j['id']       ?? 0,
+      clientId:       j['clientId']  ?? 0,
+      offreId:        j['offreId']   ?? 0,
+      offreName:      offreName,
+      clientName:     clientName,
+      quantity:       j['quantity']  ?? 1,
+      totalPrice:     (j['totalPrice'] ?? 0).toDouble(),
+      status:         j['status']    ?? 'PENDING',
+      payment:        j['paymentMethod'] ?? j['payment'],
+      createdAt:      j['createdAt']?.toString(),
+      clientPhotoUrl: fullImageUrl(rawPhoto),  // ✅ full URL
     );
   }
 
   static String _buildClientName(Map<String, dynamic> j) {
-    // Try composite fields first
     if (j['clientName'] != null && j['clientName'].toString().isNotEmpty) {
       return j['clientName'];
     }
-    // Try firstName + surname (from getReservationsByOffre)
     final first   = j['firstName']   ?? j['clientFirstName'] ?? '';
     final surname = j['surname']     ?? j['clientSurname']   ?? '';
     if (first.isNotEmpty || surname.isNotEmpty) {
@@ -92,6 +113,9 @@ class ReservationItem {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  PAGE
+// ─────────────────────────────────────────────────────────────────────────────
 class ReservationManagementPage extends StatefulWidget {
   const ReservationManagementPage({super.key});
   @override
@@ -116,9 +140,7 @@ class _ReservationManagementPageState extends State<ReservationManagementPage> {
     _fetchReservations();
   }
 
-  // ════════════════════════════════════════════════════════════
-  //  FETCH — adapts to role
-  // ════════════════════════════════════════════════════════════
+  // ── Fetch ─────────────────────────────────────────────────────────────────
   Future<void> _fetchReservations() async {
     setState(() { _loading = true; _error = null; });
     try {
@@ -127,11 +149,8 @@ class _ReservationManagementPageState extends State<ReservationManagementPage> {
 
       Uri uri;
       if (role == 'ADMIN') {
-        // Admin → getReservationManagement() returns enriched map
         uri = Uri.parse('$_base/api/admin/reservations');
       } else {
-        // Marchand → getOrdresByMarchand() returns raw Ordre list
-        // ✅ Use the marchand endpoint that returns enriched data
         final marchandId = session.userId;
         if (marchandId == null) throw Exception('User ID not found');
         uri = Uri.parse('$_base/api/ordres/marchand/$marchandId');
@@ -154,9 +173,7 @@ class _ReservationManagementPageState extends State<ReservationManagementPage> {
     }
   }
 
-  // ════════════════════════════════════════════════════════════
-  //  ACTIONS
-  // ════════════════════════════════════════════════════════════
+  // ── Actions ───────────────────────────────────────────────────────────────
   Future<void> _confirmOrder(ReservationItem item) async {
     if (!await _confirm('Confirm Order',
         'Confirm order #${item.id} for ${item.clientName}?')) return;
@@ -212,9 +229,7 @@ class _ReservationManagementPageState extends State<ReservationManagementPage> {
   void _showSnack(String msg) => ScaffoldMessenger.of(context)
       .showSnackBar(SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating));
 
-  // ════════════════════════════════════════════════════════════
-  //  BUILD
-  // ════════════════════════════════════════════════════════════
+  // ── Build ─────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     final isAdmin = UserSession().role?.toUpperCase() == 'ADMIN';
@@ -236,21 +251,15 @@ class _ReservationManagementPageState extends State<ReservationManagementPage> {
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    isAdmin ? 'Admin - Reservation Management' : 'Order Management',
+                    isAdmin ? 'Reservation Management' : 'Order Management',
                     style: const TextStyle(
-                        fontSize: 22, fontWeight: FontWeight.w400, color: kPrimary),
+                        fontSize: 20, fontWeight: FontWeight.w400, color: kPrimary),
                   ),
-                  const Spacer(),
-                  IconButton(
-                      icon: const Icon(Icons.refresh, color: kPrimary),
-                      onPressed: _fetchReservations),
                 ],
               ),
               const SizedBox(height: 16),
               _buildSummaryRow(),
               const SizedBox(height: 12),
-
-              // Filters
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
@@ -264,7 +273,7 @@ class _ReservationManagementPageState extends State<ReservationManagementPage> {
                           color: sel ? kPrimary : const Color(0xFFD7D8D7),
                           borderRadius: BorderRadius.circular(8),
                           elevation: 3,
-                          shadowColor: Colors.black.withOpacity(0.2),
+                          shadowColor: Colors.black.withValues(alpha: 0.2),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 6),
@@ -357,7 +366,7 @@ class _ReservationManagementPageState extends State<ReservationManagementPage> {
 
     return Material(
       elevation: 4,
-      shadowColor: Colors.black.withOpacity(0.2),
+      shadowColor: Colors.black.withValues(alpha: 0.2),
       borderRadius: BorderRadius.circular(12),
       child: DottedBorder(
         color: Colors.black,
@@ -373,12 +382,39 @@ class _ReservationManagementPageState extends State<ReservationManagementPage> {
             children: [
               Row(
                 children: [
+                  // ✅ FIX: show client photo if available, fallback to initials
                   CircleAvatar(
                     radius: 26,
                     backgroundColor: const Color(0xFFD0E2C0),
-                    child: Text(item.initials,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, color: kPrimary)),
+                    child: item.clientPhotoUrl != null
+                        ? ClipOval(
+                      child: Image.network(
+                        item.clientPhotoUrl!,
+                        width: 52,
+                        height: 52,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Text(
+                          item.initials,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: kPrimary),
+                        ),
+                        loadingBuilder: (_, child, progress) {
+                          if (progress == null) return child;
+                          return Text(
+                            item.initials,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: kPrimary),
+                          );
+                        },
+                      ),
+                    )
+                        : Text(
+                      item.initials,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, color: kPrimary),
+                    ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -398,8 +434,7 @@ class _ReservationManagementPageState extends State<ReservationManagementPage> {
                           Text('Date: ${_fmt(item.createdAt!)}',
                               style: const TextStyle(
                                   fontSize: 10, color: Colors.grey)),
-                        if (item.payment != null &&
-                            item.payment!.isNotEmpty)
+                        if (item.payment != null && item.payment!.isNotEmpty)
                           Text('Payment: ${item.payment}',
                               style: const TextStyle(
                                   fontSize: 10, color: Colors.grey)),
@@ -501,7 +536,7 @@ class _ReservationManagementPageState extends State<ReservationManagementPage> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
           decoration:
-              BoxDecoration(color: color, borderRadius: BorderRadius.circular(8)),
+          BoxDecoration(color: color, borderRadius: BorderRadius.circular(8)),
           child: Text(label,
               style: TextStyle(
                   fontSize: 11,

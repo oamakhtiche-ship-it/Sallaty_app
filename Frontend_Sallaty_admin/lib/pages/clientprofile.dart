@@ -7,7 +7,7 @@ import 'usersession.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 //  CONSTANTS
 // ─────────────────────────────────────────────────────────────────────────────
-const kBaseUrl           = 'http://localhost:8080';
+const kBaseUrl           = 'https://headstand-rosy-chlorine.ngrok-free.dev';
 const kPrimary           = Color(0xFFA4CF4A);
 const kPrimaryDark       = Color(0xFF5F8C38);
 const kCardBg            = Color(0xFFB9D4A1);

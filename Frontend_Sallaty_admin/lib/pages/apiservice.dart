@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'usersession.dart';
 
 // ─── Base URL ─────────────────────────────────────────────────────────────────
-const _kBaseUrl = 'http://localhost:8080';
+const _kBaseUrl = 'https://headstand-rosy-chlorine.ngrok-free.dev';
 
 // ─── Login Result ─────────────────────────────────────────────────────────────
 class LoginResult {
@@ -67,16 +67,14 @@ class ApiService {
         return LoginResult.fail('No token received from server.');
       }
 
-      final userId      = (loginData['id'] as num?)?.toInt() ?? 0;
-      final firstName   = loginData['name']?.toString() ??
-                          loginData['firstName']?.toString() ?? '';
-      final surname     = loginData['surname']?.toString() ?? '';
+      final userId       = (loginData['id'] as num?)?.toInt() ?? 0;
+      final firstName    = loginData['name']?.toString() ??
+          loginData['firstName']?.toString() ?? '';
+      final surname      = loginData['surname']?.toString() ?? '';
       final profileImage = loginData['photoUrl']?.toString() ?? '';
 
-      // ── Guard: only ADMIN may enter ────────────────────────────────────
-      final userRole = loginData['role']?.toString().toUpperCase() ?? '';
-      final isAdmin  = email.toLowerCase().contains('admin') ||
-                       userRole.contains('ADMIN');
+      // ✅ Lire isAdmin directement depuis le backend
+      final isAdmin = loginData['isAdmin'] == true;
 
       if (!isAdmin) {
         return LoginResult.fail('Access denied. This app is for admins only.');
@@ -94,6 +92,7 @@ class ApiService {
       );
 
       return LoginResult.ok();
+
     } catch (e) {
       return LoginResult.fail('Network error. Please check your connection.');
     }
@@ -145,8 +144,4 @@ class ApiService {
     }
     await UserSession().clear();
   }
-  
-
-
-  
 }

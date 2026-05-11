@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'createadmin.dart';
 
-const _kBaseUrl = 'http://localhost:8080';
+const _kBaseUrl = 'https://headstand-rosy-chlorine.ngrok-free.dev';
 
 // ─── API ──────────────────────────────────────────────────────────────────────
 

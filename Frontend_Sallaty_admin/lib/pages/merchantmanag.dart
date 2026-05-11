@@ -7,7 +7,7 @@ import 'usersession.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 //  CONSTANTS
 // ─────────────────────────────────────────────────────────────────────────────
-const kBaseUrl     = 'http://localhost:8080';
+const kBaseUrl     = 'https://headstand-rosy-chlorine.ngrok-free.dev';
 const kPrimary     = Color(0xFF72A843);
 const kPrimaryDark = Color(0xFF02531E);
 const kWhite       = Color(0xFFFFFFFF);
@@ -24,10 +24,10 @@ class MerchandApiService {
   static final _client = http.Client();
 
   static Map<String, String> _headers(String? token) => {
-        'Content-Type': 'application/json',
-        'ngrok-skip-browser-warning': 'true',
-        if (token != null) 'Authorization': 'Bearer $token',
-      };
+    'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': 'true',
+    if (token != null) 'Authorization': 'Bearer $token',
+  };
 
   /// GET /api/admin/merchants
   /// Récupère TOUS les marchands sans filtre backend
@@ -138,8 +138,8 @@ class _MerchantManagementPageState extends State<MerchantManagementPage> {
   String get _token => widget.token ?? UserSession().token ?? '';
 
   // ── Computed ───────────────────────────────────────────────────────────────
-    // ── Computed ───────────────────────────────────────────────────────────────
-  
+  // ── Computed ───────────────────────────────────────────────────────────────
+
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
   @override
@@ -155,21 +155,21 @@ class _MerchantManagementPageState extends State<MerchantManagementPage> {
   }
 
   // ── Data ───────────────────────────────────────────────────────────────────
-    Future<void> _loadMerchants() async {
+  Future<void> _loadMerchants() async {
     setState(() { _loading = true; _error = null; _merchants = []; });
     try {
       // ✅ Récupère TOUS les marchands sans filtre backend
       final list = await MerchandApiService.getMerchants(token: _token);
-      setState(() { 
-        _merchants = list.map(_normalizeMerchant).toList(); 
-        _loading = false; 
+      setState(() {
+        _merchants = list.map(_normalizeMerchant).toList();
+        _loading = false;
       });
     } catch (e) {
       setState(() { _error = e.toString(); _loading = false; _merchants = []; });
     }
   }
 
-    List<Map<String, dynamic>> get _filtered {
+  List<Map<String, dynamic>> get _filtered {
     // 1. Filtre par statut (local)
     var result = _merchants.where((m) {
       if (_selectedFilter == 'All') return true;
@@ -192,31 +192,29 @@ class _MerchantManagementPageState extends State<MerchantManagementPage> {
   /// Normalise les données du backend pour l'affichage
   /// Le backend retourne: status = PENDING / VERIFIED / CANCELLED
   /// Le frontend attend:  status = Pending / Active / Blocked
-    Map<String, dynamic> _normalizeMerchant(Map<String, dynamic> raw) {
+  Map<String, dynamic> _normalizeMerchant(Map<String, dynamic> raw) {
     final backendStatus = (raw['status'] ?? '').toString().toUpperCase();
     String displayStatus;
     switch (backendStatus) {
-      case 'VERIFIED':  displayStatus = 'Active'; break;
+      case 'VERIFIED':  displayStatus = 'Active';  break;
       case 'PENDING':   displayStatus = 'Pending'; break;
       case 'CANCELLED': displayStatus = 'Blocked'; break;
       default:          displayStatus = 'Pending';
     }
-
     return {
       ...raw,
-      'id': raw['userId'] ?? raw['id'] ?? 0,
-      'name': raw['fullName'] ?? raw['name'] ?? 'Unknown',
-      'email': raw['email'] ?? raw['contact'] ?? '',
-      'status': displayStatus,
-      'offers': raw['nbOffer'] ?? raw['totalOffers'] ?? 0,
-      'revenue': raw['revenue'] ?? raw['totalRevenue'] ?? 0,
-      'photo': raw['profileImage'] ?? raw['photo'] ?? raw['photoUrl'],
-      'storeName': raw['shopName'] ?? '-',
-      'businessType': raw['typeOfActivity'] ?? '-',
-      'address': raw['wilaya'] ?? '-',
+      'id':           raw['userId']       ?? 0,           // ✅ backend sends userId
+      'name':         raw['fullName']     ?? 'Unknown',   // ✅ backend sends fullName
+      'email':        raw['contact']      ?? '',           // ✅ backend sends contact
+      'status':       displayStatus,
+      'offers':       raw['nbOffres']     ?? 0,           // ✅ backend sends nbOffres
+      'revenue':      raw['revenue']      ?? 0,           // ✅ backend sends revenue
+      'photo':        raw['profileImage'] ?? '',          // ✅ backend sends profileImage
+      'storeName':    raw['businessName'] ?? '-',         // ✅ backend sends businessName
+      'address':      raw['wilaya']       ?? '-',         // ✅ backend sends wilaya
     };
   }
-  
+
 
   // ── Actions ────────────────────────────────────────────────────────────────
   Future<void> _verify(Map<String, dynamic> m) async {
@@ -291,7 +289,7 @@ class _MerchantManagementPageState extends State<MerchantManagementPage> {
   // ── Navigation ─────────────────────────────────────────────────────────────
   Future<void> _openMerchantDetail(Map<String, dynamic> merchant) async {
     final userId = merchant['id'] as int? ?? 0;
-    
+
     // Charge le profil complet depuis le backend
     showDialog(
       context: context,
@@ -330,7 +328,7 @@ class _MerchantManagementPageState extends State<MerchantManagementPage> {
     final fn = raw['firstName']?.toString() ?? '';
     final ln = raw['surname']?.toString() ?? raw['lastName']?.toString() ?? '';
     final nm = '$fn $ln'.trim();
-    
+
     // Détermine le statut d'affichage
     final backendStatus = (raw['marchandStatus'] ?? raw['status'] ?? '').toString().toUpperCase();
     String displayStatus;
@@ -383,21 +381,21 @@ class _MerchantManagementPageState extends State<MerchantManagementPage> {
 
   Future<bool> _confirmDialog(String title, String content) async {
     return await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: Text(title),
-            content: Text(content),
-            actions: [
-              TextButton(
-                  onPressed: () => Navigator.pop(ctx, false),
-                  child: const Text('Annuler')),
-              TextButton(
-                  onPressed: () => Navigator.pop(ctx, true),
-                  child: const Text('Confirmer',
-                      style: TextStyle(color: Color(0xFFE42F27)))),
-            ],
-          ),
-        ) ??
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: Text(content),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Annuler')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Confirmer',
+                  style: TextStyle(color: Color(0xFFE42F27)))),
+        ],
+      ),
+    ) ??
         false;
   }
 
@@ -669,13 +667,6 @@ class _MerchantManagementPageState extends State<MerchantManagementPage> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 if (isPending) ...[
-                  _actionButton(
-                    label: 'Verify',
-                    color: kPrimary,
-                    textColor: kWhite,
-                    onTap: () => _verify(merchant),
-                  ),
-                  const SizedBox(height: 6),
                   _actionButton(
                     label: 'Cancel',
                     color: const Color(0xFFE42F27),

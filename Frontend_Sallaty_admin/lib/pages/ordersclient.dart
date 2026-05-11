@@ -2,20 +2,31 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-const kBaseUrl  = 'http://localhost:8080';
+const kBaseUrl     = 'https://headstand-rosy-chlorine.ngrok-free.dev';
 const kPrimary     = Color(0xFF72A843);
 const kPrimaryDark = Color(0xFF5F8C38);
 const kWhite       = Color(0xFFFFFFFF);
 const kBorder      = Color(0xFFAFB0AE);
 
-// ─── API Service ──────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+//  IMAGE URL HELPER — converts any path to a fully-qualified URL
+// ─────────────────────────────────────────────────────────────────────────────
+String? _fullImageUrl(String? path) {
+  if (path == null || path.trim().isEmpty) return null;
+  final p = path.trim();
+  if (p.startsWith('http://') || p.startsWith('https://')) return p;
+  if (p.startsWith('//')) return 'https:$p';
+  return '$kBaseUrl${p.startsWith('/') ? '' : '/'}$p';
+}
 
+// ─── API Service ──────────────────────────────────────────────────────────────
 class OrdersApiService {
   static Future<List<Map<String, dynamic>>> fetchClientOrders(String token) async {
     final uri = Uri.parse('$kBaseUrl/api/ordres/client');
     final res = await http.get(uri, headers: {
       'Authorization': 'Bearer $token',
       'Content-Type': 'application/json',
+      'ngrok-skip-browser-warning': 'true',
     });
     if (res.statusCode == 200) {
       final data = jsonDecode(res.body);
@@ -31,6 +42,7 @@ class OrdersApiService {
     final res = await http.get(uri, headers: {
       'Authorization': 'Bearer $token',
       'Content-Type': 'application/json',
+      'ngrok-skip-browser-warning': 'true',
     });
     if (res.statusCode == 200) {
       final data = jsonDecode(res.body);
@@ -45,18 +57,29 @@ class OrdersApiService {
     final res = await http.put(uri, headers: {
       'Authorization': 'Bearer $token',
       'Content-Type': 'application/json',
+      'ngrok-skip-browser-warning': 'true',
     });
     return res.statusCode == 200;
   }
 }
 
 // ─── Helper: map raw API order → UI-friendly map ─────────────────────────────
-
 Map<String, dynamic> _mapOrder(Map<String, dynamic> raw) {
+  final rawImage = raw['offreImage']?.toString()
+      ?? raw['imageUrl']?.toString()
+      ?? raw['image']?.toString()
+      ?? raw['photoPath']?.toString()
+      ?? raw['photo']?.toString()
+      ?? raw['offerImage']?.toString();
+
+  // 🔍 DEBUG — retire ces lignes une fois que les images s'affichent
+  debugPrint('RAW ORDER KEYS: ${raw.keys.toList()}');
+  debugPrint('RAW IMAGE VALUE: $rawImage');
+
   return {
     'ordreId':     raw['id'] ?? raw['ordreId'],
     'productName': raw['offreName'] ?? raw['productName'] ?? 'Produit',
-    'imageUrl':    raw['offreImage'] ?? raw['imageUrl'],
+    'imageUrl':    _fullImageUrl(rawImage),
     'totalPrice':  raw['totalPrice'] ?? raw['montantTotal'] ?? 0,
     'quantity':    raw['quantity'] ?? raw['quantite'] ?? 1,
     'status':      _mapStatus(raw['status'] ?? raw['statut'] ?? ''),
@@ -74,6 +97,7 @@ String _mapStatus(String s) {
     case 'CONFIRMED': return 'Confirmed';
     case 'PENDING':   return 'Pending';
     case 'CANCELLED': return 'Cancelled';
+    case 'COMPLETED':
     case 'PICKED':    return 'Picked';
     default:          return s;
   }
@@ -83,19 +107,16 @@ String? _shortDate(dynamic raw) {
   if (raw == null) return null;
   try {
     final dt = DateTime.parse(raw.toString());
-    return '${dt.day}/${dt.month} ${dt.hour}h${dt.minute.toString().padLeft(2,'0')}';
+    return '${dt.day}/${dt.month} ${dt.hour}h${dt.minute.toString().padLeft(2, '0')}';
   } catch (_) {
     return raw.toString();
   }
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
-
 class ClientActivityPage extends StatefulWidget {
   final String clientName;
   final String token;
-
-  // Optionally pass pre-loaded orders (offline/test mode)
   final List<Map<String, dynamic>>? orders;
 
   const ClientActivityPage({
@@ -179,7 +200,7 @@ class _ClientActivityPageState extends State<ClientActivityPage> {
                   ),
                   const SizedBox(width: 12),
                   const Text(
-                    'Activity _ ',
+                    'Activity · ',
                     style: TextStyle(
                       fontSize: 18, fontWeight: FontWeight.w400, color: kPrimary,
                     ),
@@ -193,7 +214,6 @@ class _ClientActivityPageState extends State<ClientActivityPage> {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  // Refresh button
                   IconButton(
                     icon: const Icon(Icons.refresh, color: kPrimaryDark),
                     onPressed: _loadOrders,
@@ -206,62 +226,62 @@ class _ClientActivityPageState extends State<ClientActivityPage> {
               child: _loading
                   ? const Center(child: CircularProgressIndicator(color: kPrimary))
                   : _error != null
-                      ? _ErrorView(message: _error!, onRetry: _loadOrders)
-                      : SingleChildScrollView(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // ── Orders Tab ──
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(vertical: 10),
-                                decoration: BoxDecoration(
-                                  color: kPrimary,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                alignment: Alignment.center,
-                                child: const Text(
-                                  'Orders',
-                                  style: TextStyle(
-                                    fontSize: 14, fontWeight: FontWeight.w700, color: kWhite,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 14),
+                  ? _ErrorView(message: _error!, onRetry: _loadOrders)
+                  : SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ── Tab header ──
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: kPrimary,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      alignment: Alignment.center,
+                      child: const Text(
+                        'Orders',
+                        style: TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.w700, color: kWhite,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
 
-                              // ── Stats Row ──
-                              Row(
-                                children: [
-                                  _statChip('$confirmed', 'Confirmed',
-                                      const Color(0xFFD0E2C0), const Color(0xFF007665)),
-                                  const SizedBox(width: 8),
-                                  _statChip('$pending', 'Pending',
-                                      const Color(0xFFFFF3CD), const Color(0xFF856404)),
-                                  const SizedBox(width: 8),
-                                  _statChip('$cancelled', 'Cancelled',
-                                      const Color(0xFFFFBEBE), Colors.red),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
+                    // ── Stats Row ──
+                    Row(
+                      children: [
+                        _statChip('$confirmed', 'Confirmed',
+                            const Color(0xFFD0E2C0), const Color(0xFF007665)),
+                        const SizedBox(width: 8),
+                        _statChip('$pending', 'Pending',
+                            const Color(0xFFFFF3CD), const Color(0xFF856404)),
+                        const SizedBox(width: 8),
+                        _statChip('$cancelled', 'Cancelled',
+                            const Color(0xFFFFBEBE), Colors.red),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
 
-                              if (_orders.isEmpty)
-                                const Center(
-                                  child: Padding(
-                                    padding: EdgeInsets.all(32),
-                                    child: Text(
-                                      'Aucune commande trouvée.',
-                                      style: TextStyle(color: Colors.grey),
-                                    ),
-                                  ),
-                                )
-                              else
-                                ..._orders.map((order) => _orderCard(order)),
-
-                              const SizedBox(height: 24),
-                            ],
+                    if (_orders.isEmpty)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(32),
+                          child: Text(
+                            'Aucune commande trouvée.',
+                            style: TextStyle(color: Colors.grey),
                           ),
                         ),
+                      )
+                    else
+                      ..._orders.map((order) => _orderCard(order)),
+
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
@@ -269,7 +289,7 @@ class _ClientActivityPageState extends State<ClientActivityPage> {
     );
   }
 
-  // ── Stat chip ──
+  // ── Stat chip ──────────────────────────────────────────────────────────────
   Widget _statChip(String value, String label, Color bg, Color textColor) {
     return Expanded(
       child: Container(
@@ -277,7 +297,8 @@ class _ClientActivityPageState extends State<ClientActivityPage> {
         decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(10)),
         child: Column(
           children: [
-            Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor)),
+            Text(value,
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor)),
             const SizedBox(height: 2),
             Text(label, style: TextStyle(fontSize: 10, color: textColor)),
           ],
@@ -286,9 +307,10 @@ class _ClientActivityPageState extends State<ClientActivityPage> {
     );
   }
 
-  // ── Order card ──
+  // ── Order card ─────────────────────────────────────────────────────────────
   Widget _orderCard(Map<String, dynamic> order) {
     final status = order['status'] as String;
+
     Color statusBg, statusText;
     switch (status) {
       case 'Confirmed':
@@ -303,7 +325,13 @@ class _ClientActivityPageState extends State<ClientActivityPage> {
         statusBg = const Color(0xFFEEEEEE); statusText = Colors.grey;
     }
 
-    final ordreId = order['ordreId'];
+    final ordreId  = order['ordreId'];
+    final imageUrl = order['imageUrl'] as String?;
+
+    // ✅ Header ngrok obligatoire pour que l'image passe
+    const imageHeaders = {
+      'ngrok-skip-browser-warning': 'true',
+    };
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -311,23 +339,55 @@ class _ClientActivityPageState extends State<ClientActivityPage> {
       decoration: BoxDecoration(
         color: kWhite,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: kBorder.withOpacity(0.5)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 3))],
+        border: Border.all(color: kBorder.withValues(alpha: 0.5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Image
+          // ── Image avec header ngrok ──────────────────────────────────────
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
-            child: order['imageUrl'] != null
-                ? Image.network(order['imageUrl'], width: 60, height: 60, fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _imagePlaceholder())
+            child: imageUrl != null
+                ? Image.network(
+              imageUrl,
+              width: 60,
+              height: 60,
+              fit: BoxFit.cover,
+              headers: imageHeaders,           // ✅ FIX PRINCIPAL
+              errorBuilder: (_, error, __) {
+                debugPrint('Image error for $imageUrl : $error');
+                return _imagePlaceholder();
+              },
+              loadingBuilder: (_, child, progress) {
+                if (progress == null) return child;
+                return SizedBox(
+                  width: 60,
+                  height: 60,
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: kPrimary,
+                      value: progress.expectedTotalBytes != null
+                          ? progress.cumulativeBytesLoaded /
+                          progress.expectedTotalBytes!
+                          : null,
+                    ),
+                  ),
+                );
+              },
+            )
                 : _imagePlaceholder(),
           ),
           const SizedBox(width: 12),
 
-          // Info
+          // ── Info ──────────────────────────────────────────────────────────
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -336,31 +396,45 @@ class _ClientActivityPageState extends State<ClientActivityPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Flexible(
-                      child: Text(order['productName'] ?? '',
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF1A1A1A)),
-                          overflow: TextOverflow.ellipsis),
+                      child: Text(
+                        order['productName'] ?? '',
+                        style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1A1A1A)),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                    Text('Total: ${order['totalPrice']} DA',
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
+                    Text(
+                      'Total: ${order['totalPrice']} DA',
+                      style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1A1A1A)),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 4),
                 if (order['from'] != null)
-                  Text('From: ${order['from']}', style: const TextStyle(fontSize: 10, color: Color(0xFF717270))),
+                  Text('From: ${order['from']}',
+                      style: const TextStyle(fontSize: 10, color: Color(0xFF717270))),
                 if (order['quantity'] != null)
-                  Text('Qty: ${order['quantity']}', style: const TextStyle(fontSize: 10, color: Color(0xFF717270))),
+                  Text('Qty: ${order['quantity']}',
+                      style: const TextStyle(fontSize: 10, color: Color(0xFF717270))),
                 if (order['payment'] != null)
-                  Text('Payment: ${order['payment']}', style: const TextStyle(fontSize: 10, color: Color(0xFF717270))),
+                  Text('Payment: ${order['payment']}',
+                      style: const TextStyle(fontSize: 10, color: Color(0xFF717270))),
                 const SizedBox(height: 2),
                 _buildTimeline(order),
 
-                // Cancel button only for pending
+                // Bouton annuler — seulement pour les commandes pending
                 if (status == 'Pending' && ordreId != null)
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
                       onPressed: () => _showCancelDialog(ordreId),
-                      style: TextButton.styleFrom(foregroundColor: Colors.red, padding: EdgeInsets.zero),
+                      style: TextButton.styleFrom(
+                          foregroundColor: Colors.red, padding: EdgeInsets.zero),
                       child: const Text('Annuler', style: TextStyle(fontSize: 11)),
                     ),
                   ),
@@ -371,9 +445,11 @@ class _ClientActivityPageState extends State<ClientActivityPage> {
           const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(color: statusBg, borderRadius: BorderRadius.circular(8)),
+            decoration:
+            BoxDecoration(color: statusBg, borderRadius: BorderRadius.circular(8)),
             child: Text(status,
-                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: statusText)),
+                style: TextStyle(
+                    fontSize: 10, fontWeight: FontWeight.w600, color: statusText)),
           ),
         ],
       ),
@@ -387,7 +463,8 @@ class _ClientActivityPageState extends State<ClientActivityPage> {
         title: const Text('Annuler la commande ?'),
         content: const Text('Cette action est irréversible.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Non')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('Non')),
           TextButton(
             onPressed: () { Navigator.pop(ctx); _cancelOrder(ordreId); },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
@@ -405,13 +482,21 @@ class _ClientActivityPageState extends State<ClientActivityPage> {
     if (order['pickedAt']    != null) parts.add('Picked: ${order['pickedAt']}');
     if (order['cancelledAt'] != null) parts.add('Cancelled: ${order['cancelledAt']}');
     if (parts.isEmpty) return const SizedBox.shrink();
-    return Text(parts.join(' · '), style: const TextStyle(fontSize: 9, color: Color(0xFF9B9D9A)));
+    return Text(
+      parts.join(' · '),
+      style: const TextStyle(fontSize: 9, color: Color(0xFF9B9D9A)),
+    );
   }
 
   Widget _imagePlaceholder() => Container(
-    width: 60, height: 60,
-    decoration: BoxDecoration(color: const Color(0xFFD0E2C0), borderRadius: BorderRadius.circular(10)),
-    child: const Icon(Icons.shopping_bag_outlined, color: Color(0xFF5F8C38), size: 28),
+    width: 60,
+    height: 60,
+    decoration: BoxDecoration(
+      color: const Color(0xFFD0E2C0),
+      borderRadius: BorderRadius.circular(10),
+    ),
+    child: const Icon(Icons.shopping_bag_outlined,
+        color: Color(0xFF5F8C38), size: 28),
   );
 }
 
@@ -431,7 +516,9 @@ class _ErrorView extends StatelessWidget {
           children: [
             const Icon(Icons.error_outline, color: Colors.red, size: 48),
             const SizedBox(height: 12),
-            Text(message, textAlign: TextAlign.center, style: const TextStyle(color: Colors.red)),
+            Text(message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.red)),
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: onRetry,

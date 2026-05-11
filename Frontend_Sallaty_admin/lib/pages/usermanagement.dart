@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'marchantprofile.dart';
 import 'clientprofile.dart';
 
-const kBaseUrl     = 'http://localhost:8080';
+const kBaseUrl     = 'https://headstand-rosy-chlorine.ngrok-free.dev';
 const kPrimary     = Color(0xFF72A843);
 const kPrimaryDark = Color(0xFF02531E);
 const kWhite       = Color(0xFFFFFFFF);
@@ -12,14 +12,27 @@ const kTextDark    = Color(0xFF2D2E2D);
 const kTextGrey    = Color(0xFF717270);
 const kBorderGrey  = Color(0xFFC3C4C3);
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  IMAGE URL HELPER — converts relative paths to full URLs
+// ─────────────────────────────────────────────────────────────────────────────
+String? fullImageUrl(String? path) {
+  if (path == null || path.trim().isEmpty) return null;
+  final p = path.trim();
+  if (p.startsWith('http://') || p.startsWith('https://')) return p;
+  // Handle paths that already contain the base url without scheme
+  if (p.startsWith('//')) return 'https:$p';
+  // Relative path — prepend base URL
+  return '$kBaseUrl${p.startsWith('/') ? '' : '/'}$p';
+}
+
 class UserApiService {
   static final _httpClient = http.Client();
 
   static Map<String, String> _headers(String token) => {
-        'Content-Type': 'application/json',
-        'ngrok-skip-browser-warning': 'true',
-        'Authorization': 'Bearer $token',
-      };
+    'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': 'true',
+    'Authorization': 'Bearer $token',
+  };
 
   static Future<List<Map<String, dynamic>>> getUsers({
     String? filter,
@@ -55,9 +68,9 @@ class UserApiService {
       final filterLower = filter.toLowerCase();
       users = users.where((u) {
         final state = (u['status']?.toString() ??
-                       u['accountState']?.toString() ??
-                       u['account_state']?.toString() ??
-                       'active')
+            u['accountState']?.toString() ??
+            u['account_state']?.toString() ??
+            'active')
             .toLowerCase();
         return state == filterLower;
       }).toList();
@@ -116,6 +129,8 @@ class _UserManagementPageState extends State<UserManagementPage> {
   bool _loading = true;
   String? _error;
 
+  // ── Helpers ──────────────────────────────────────────────────────────────
+
   String _displayName(Map<String, dynamic> u) {
     final first = u['firstName']?.toString().trim() ?? u['first_name']?.toString().trim() ?? '';
     final last  = u['surname']?.toString().trim()   ?? u['lastName']?.toString().trim()  ?? '';
@@ -129,8 +144,12 @@ class _UserManagementPageState extends State<UserManagementPage> {
     return u['contact']?.toString() ?? u['email']?.toString() ?? u['mail']?.toString() ?? '';
   }
 
+  /// Returns a fully-qualified image URL or null
   String? _displayPhoto(Map<String, dynamic> u) {
-    return u['profileImage']?.toString() ?? u['photo']?.toString() ?? u['photoUrl']?.toString();
+    final raw = u['profileImage']?.toString()
+        ?? u['photo']?.toString()
+        ?? u['photoUrl']?.toString();
+    return fullImageUrl(raw);
   }
 
   List<Map<String, dynamic>> get _filtered {
@@ -209,7 +228,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
     final userId = user['id'] as int? ?? user['userId'] as int? ?? 0;
     if (!mounted) return;
     showDialog(context: context, barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator(color: kPrimary)));
+        builder: (_) => const Center(child: CircularProgressIndicator(color: kPrimary)));
     try {
       final full = await UserApiService.getUserProfile(userId, widget.token);
       if (!mounted) return;
@@ -230,7 +249,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
     final userId = user['id'] as int? ?? user['userId'] as int? ?? 0;
     if (!mounted) return;
     showDialog(context: context, barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator(color: kPrimary)));
+        builder: (_) => const Center(child: CircularProgressIndicator(color: kPrimary)));
     try {
       final full = await UserApiService.getUserProfile(userId, widget.token);
       if (!mounted) return;
@@ -272,7 +291,8 @@ class _UserManagementPageState extends State<UserManagementPage> {
       'lastConnexion': _fmtDate(u['lastConnexion'] ?? u['lastLogin']),
       'orders': u['nbOrder'] ?? u['orders'] ?? u['totalOrders'] ?? 0,
       'favorites': u['nbFavoris'] ?? u['favorites'] ?? u['totalFavoris'] ?? 0,
-      'photo': u['profileImage'] ?? u['photo'] ?? u['photoUrl'],
+      // ✅ FIX: normalize photo URL
+      'photo': fullImageUrl(u['profileImage']?.toString() ?? u['photo']?.toString() ?? u['photoUrl']?.toString()),
     };
   }
 
@@ -298,7 +318,8 @@ class _UserManagementPageState extends State<UserManagementPage> {
       'businessType': u['businessType'] ?? u['typeOfActivity'] ?? '-',
       'address': u['address'] ?? u['wilaya'] ?? '-',
       'tradeRegisterUrl': u['tradeRegisterUrl'] ?? u['tradeRegister'] ?? '',
-      'photo': u['profileImage'] ?? u['photo'] ?? u['photoUrl'],
+      // ✅ FIX: normalize photo URL
+      'photo': fullImageUrl(u['profileImage']?.toString() ?? u['photo']?.toString() ?? u['photoUrl']?.toString()),
     };
   }
 
@@ -312,16 +333,16 @@ class _UserManagementPageState extends State<UserManagementPage> {
 
   Future<bool> _confirmDialog(String title, String content) async {
     return await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: Text(title), content: Text(content),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
-              TextButton(onPressed: () => Navigator.pop(ctx, true),
-                  child: const Text('Confirmer', style: TextStyle(color: Color(0xFFE42F27)))),
-            ],
-          ),
-        ) ?? false;
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title), content: Text(content),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Confirmer', style: TextStyle(color: Color(0xFFE42F27)))),
+        ],
+      ),
+    ) ?? false;
   }
 
   @override
@@ -335,7 +356,6 @@ class _UserManagementPageState extends State<UserManagementPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 16),
-              // Header
               Row(children: [
                 GestureDetector(
                   onTap: () => Navigator.maybePop(context),
@@ -345,8 +365,6 @@ class _UserManagementPageState extends State<UserManagementPage> {
                 const Text('User Management',
                     style: TextStyle(fontFamily: 'poppins', fontSize: 22,
                         fontWeight: FontWeight.w500, color: kPrimary)),
-                const Spacer(),
-                IconButton(icon: const Icon(Icons.refresh_rounded, color: kPrimary), onPressed: _loadUsers),
               ]),
               const SizedBox(height: 20),
               // Search Bar
@@ -368,8 +386,8 @@ class _UserManagementPageState extends State<UserManagementPage> {
                     border: InputBorder.none,
                     suffixIcon: _searchController.text.isNotEmpty
                         ? GestureDetector(
-                            onTap: () { _searchController.clear(); setState(() {}); },
-                            child: const Icon(Icons.close, color: kTextGrey, size: 18))
+                        onTap: () { _searchController.clear(); setState(() {}); },
+                        child: const Icon(Icons.close, color: kTextGrey, size: 18))
                         : null,
                   ),
                 ),
@@ -408,7 +426,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
               if (!_loading && _error == null)
                 Text(
                   '${_filtered.length} user${_filtered.length != 1 ? 's' : ''} found'
-                  '${_selectedFilter != 'All' ? ' · $_selectedFilter' : ''}',
+                      '${_selectedFilter != 'All' ? ' · $_selectedFilter' : ''}',
                   style: const TextStyle(fontSize: 12, color: kTextGrey),
                 ),
               const SizedBox(height: 8),
@@ -458,24 +476,48 @@ class _UserManagementPageState extends State<UserManagementPage> {
     final isActive   = rawStatus.toLowerCase() == 'active';
     final role       = (user['role']?.toString() ?? user['accountType']?.toString() ?? '').toUpperCase();
     final isMerchant = role == 'MERCHANT' || role == 'MARCHANT' || role == 'MARCHAND' ||
-                       role == 'SELLER'   || role == 'VENDOR';
+        role == 'SELLER'   || role == 'VENDOR';
     final displayName  = _displayName(user);
     final displayEmail = _displayEmail(user);
+    // ✅ FIX: use helper for full URL
     final photoUrl     = _displayPhoto(user);
 
     final card = Container(
       margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12),
-            blurRadius: 10, spreadRadius: 1, offset: const Offset(0, 3))]),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12),
+              blurRadius: 10, spreadRadius: 1, offset: const Offset(0, 3))]),
       child: Row(children: [
-        CircleAvatar(radius: 24, backgroundColor: const Color(0xFFD0E2C0),
-          backgroundImage: photoUrl != null ? NetworkImage(photoUrl) : null,
-          child: photoUrl == null
-              ? Icon(isMerchant ? Icons.store_rounded : Icons.person_rounded,
-                  color: kPrimary, size: 26)
-              : null),
+        // ✅ FIX: NetworkImage with error handler
+        CircleAvatar(
+          radius: 24,
+          backgroundColor: const Color(0xFFD0E2C0),
+          child: photoUrl != null
+              ? ClipOval(
+            child: Image.network(
+              photoUrl,
+              width: 48,
+              height: 48,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Icon(
+                isMerchant ? Icons.store_rounded : Icons.person_rounded,
+                color: kPrimary, size: 26,
+              ),
+              loadingBuilder: (_, child, progress) {
+                if (progress == null) return child;
+                return const SizedBox(
+                  width: 20, height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: kPrimary),
+                );
+              },
+            ),
+          )
+              : Icon(
+            isMerchant ? Icons.store_rounded : Icons.person_rounded,
+            color: kPrimary, size: 26,
+          ),
+        ),
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
@@ -524,7 +566,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
   }
 
   Widget _actionButton({required String label, required Color color,
-      required Color textColor, required VoidCallback onTap}) {
+    required Color textColor, required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(

@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'appcontent.dart';
 import 'admin.dart';
 
-const kBaseUrl = 'http://localhost:8080';
+const kBaseUrl = 'https://headstand-rosy-chlorine.ngrok-free.dev';
 
 // ─── API Service ──────────────────────────────────────────────────────────────
 
@@ -224,7 +224,7 @@ class _SettingsBodyState extends State<SettingsBody> {
                   SizedBox(width: 80, child: _NumberField(controller: hoursCtrl, suffix: '')),
                   const SizedBox(width: 10),
                   const Text('hour before pickup',
-                      style: TextStyle(fontSize: 16, color: Color(0xFF0A0A0A))),
+                      style: TextStyle(fontSize: 12, color: Color(0xFF0A0A0A))),
                 ],
               ),
               const SizedBox(height: 14),

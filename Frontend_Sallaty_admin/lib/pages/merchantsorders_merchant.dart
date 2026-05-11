@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import 'usersession.dart';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
-const _base = 'http://localhost:8080';
+const _base = 'https://headstand-rosy-chlorine.ngrok-free.dev';
 
 Map<String, String> _headers() => {
   'Content-Type': 'application/json',

@@ -10,7 +10,7 @@ const kWhite       = Color(0xFFFFFFFF);
 const kGrey        = Color(0xFFCCCCCC);
 const kTextDark    = Color(0xFF000000);
 
-const _baseUrl = 'http://localhost:8080';
+const _baseUrl = 'https://headstand-rosy-chlorine.ngrok-free.dev';
 
 class DashboardPage extends StatefulWidget {
   final String token;
@@ -316,7 +316,7 @@ class _DashboardPageState extends State<DashboardPage> {
         maxY: maxY,
         barGroups: List.generate(
           merchantRevenues.length,
-          (i) => BarChartGroupData(x: i, barRods: [
+              (i) => BarChartGroupData(x: i, barRods: [
             BarChartRodData(
                 toY: merchantRevenues[i],
                 color: kPrimary,
@@ -389,7 +389,7 @@ class _DashboardPageState extends State<DashboardPage> {
           LineChartBarData(
             spots: List.generate(
               monthlyRevenue.length,
-              (i) => FlSpot(i.toDouble(), monthlyRevenue[i]),
+                  (i) => FlSpot(i.toDouble(), monthlyRevenue[i]),
             ),
             isCurved: true,
             color: const Color(0xFFA4CF4A),
@@ -500,10 +500,10 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _noData() => const SizedBox(
-        height: 150,
-        child: Center(
-            child: Text('No data', style: TextStyle(color: Colors.grey))),
-      );
+    height: 150,
+    child: Center(
+        child: Text('No data', style: TextStyle(color: Colors.grey))),
+  );
 
   String _formatK(double v) {
     if (v >= 1000) return '${(v / 1000).toStringAsFixed(0)}k';

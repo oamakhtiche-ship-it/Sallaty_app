@@ -56,7 +56,7 @@ class _HelpPageState extends State<HelpPage> {
   //  CONSTANTS
   // ─────────────────────────────────────────────
   static const String _baseUrl =
-      'http://localhost:8080';
+      'https://headstand-rosy-chlorine.ngrok-free.dev';
 
   // ─────────────────────────────────────────────
   //  STATE

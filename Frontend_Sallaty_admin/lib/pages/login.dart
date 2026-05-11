@@ -157,19 +157,7 @@ class _Login1State extends State<Login1> {
                         style:
                             TextStyle(fontSize: 13, color: Color(0xFF555555))),
                     const Spacer(),
-                    GestureDetector(
-                      onTap: () {
-                        // TODO: navigate to forgot-password screen
-                      },
-                      child: const Text(
-                        'Forgot Password?',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF72A843),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
+
                   ],
                 ),
 
@@ -217,27 +205,7 @@ class _Login1State extends State<Login1> {
                 const SizedBox(height: 20),
 
                 // ── sign up link (optional for admin app) ───────────────────
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text("Don't have an account? ",
-                        style:
-                            TextStyle(fontSize: 13, color: Color(0xFF555555))),
-                    GestureDetector(
-                      onTap: () {
-                        // TODO: navigate to sign-up if needed
-                      },
-                      child: const Text(
-                        'Sign up',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF72A843),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+
               ],
             ),
           ),
