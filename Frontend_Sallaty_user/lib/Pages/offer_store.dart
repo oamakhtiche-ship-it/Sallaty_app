@@ -13,7 +13,7 @@ class OfferStore {
   // ── Offres du marchand connecté (MyOffersPage) ───────────────────
   static List<Offer> myOffers = [];
 
-  static const String _baseUrl = 'https://headstand-rosy-chlorine.ngrok-free.dev';
+  static const String _baseUrl = 'https://sallaty2.onrender.com';
 
   static Map<String, String> get _headers => {
     'Content-Type': 'application/json',

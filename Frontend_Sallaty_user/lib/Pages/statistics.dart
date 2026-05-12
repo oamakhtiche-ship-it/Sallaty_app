@@ -503,7 +503,7 @@ Widget _photoBox(String? url, IconData fallback) {
           width: 48,
           height: 48,
           fit: BoxFit.cover,
-          headers: const {'ngrok-skip-browser-warning': 'true'},  // ← si tu utilises ngrok
+          headers: const {'ngrok-skip-browser-warning': 'true'},  
           errorBuilder: (context, error, stackTrace) => Container(
             width: 48,
             height: 48,

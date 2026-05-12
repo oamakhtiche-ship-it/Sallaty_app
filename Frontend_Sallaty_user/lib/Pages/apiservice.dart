@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:flutter/foundation.dart'; 
+import 'package:flutter/foundation.dart'; // kIsWeb
 import 'package:http/http.dart' as http;
 import 'usersession.dart';
 
 class ApiConfig {
-  static const String baseUrl = 'https://headstand-rosy-chlorine.ngrok-free.dev';
+  static const String baseUrl = 'https://sallaty2.onrender.com';
 
   static const String registerStep1  = '/api/auth/register/step1';
   static const String registerStep2  = '/api/auth/register/step2';
@@ -55,13 +55,17 @@ class ApiService {
     catch (_) { return {'message': res.body}; }
   }
 
-
+  // ─────────────────────────────────────────────────────────────
+  //  HELPER PRIVÉ — ajoute le fichier à la requête multipart
+  //  ✅ Android / iOS : fromPath()  → lit depuis disque, pas de RAM
+  //  ✅ Web           : fromBytes() → dart:io indisponible
+  // ─────────────────────────────────────────────────────────────
   static Future<void> _attachFile(
     http.MultipartRequest request,
     String fieldName,
-    String? filePath,      
+    String? filePath,      // nullable — inutilisé sur Web
     String filename,
-    Uint8List? webBytes,   
+    Uint8List? webBytes,   // seulement sur Web
   ) async {
     if (kIsWeb) {
       request.files.add(

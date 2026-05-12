@@ -5,7 +5,7 @@ import 'l10n/app_localizations.dart';
 import 'Pages/splashscreen.dart';
 import 'Pages/usersession.dart';
 import 'Pages/apiservice.dart';
-import 'Pages/fcm_token_service.dart';   
+import 'Pages/fcm_token_service.dart';   // ← fixed: no spaces
 import 'Pages/otifications.dart';
 
 final ValueNotifier<Locale> appLocale = ValueNotifier(const Locale('en'));
@@ -17,7 +17,7 @@ void main() async {
   try {
     await Firebase.initializeApp(
   options: const FirebaseOptions(
-    apiKey:            "AIzaSy...",  
+    apiKey:            "AIzaSy...",  // ← récupère depuis google-services.json
     authDomain:        "sallaty-97a49.firebaseapp.com",
     projectId:         "sallaty-97a49",
     storageBucket:     "sallaty-97a49.firebasestorage.app",
@@ -38,7 +38,7 @@ void main() async {
   // 4. Refresh profile + upload FCM token if already logged in
   if (userSession.isLoggedIn) {
     await ApiService.refreshProfile();
-    FcmTokenService.uploadToken(); 
+    FcmTokenService.uploadToken(); // background, no await
   }
 
   runApp(const MyApp());

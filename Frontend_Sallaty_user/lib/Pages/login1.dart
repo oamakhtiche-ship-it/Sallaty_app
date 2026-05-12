@@ -21,16 +21,7 @@ class _Login1State extends State<Login1> {
   bool _obscurePassword = true;
   bool _isLoading       = false; // ← AJOUT
 
-  // ──────────────────────────────────────────────────────────────────
-  //  LOGIN
-  //  Appelle POST /api/auth/login
-  //  Body : { "email": "...", "password": "..." }
-  //
-  //  En cas de succès, ApiService.login() appelle automatiquement
-  //  UserSession().hydrateFromJson() + saveToPrefs() :
-  //  → le JWT est stocké sur le disque
-  //  → au prochain démarrage, SplashScreen ira directement sur HomePage
-  // ──────────────────────────────────────────────────────────────────
+ 
   Future<void> _onLogin() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 

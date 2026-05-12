@@ -36,9 +36,9 @@ class EditOfferPage extends StatefulWidget {
 }
 
 class _EditOfferPageState extends State<EditOfferPage> {
-  
+  // ✅ Stocke le XFile pour accéder à .path (Android) ou .readAsBytes() (Web)
   XFile? _pickedImage;
-  Uint8List? _newImagePreviewBytes; 
+  Uint8List? _newImagePreviewBytes; // uniquement pour l'aperçu
 
   final ImagePicker _picker = ImagePicker();
   final Color primaryColor = const Color(0xFF72A843);
@@ -112,7 +112,8 @@ class _EditOfferPageState extends State<EditOfferPage> {
         _selectedStatus != null;
   }
 
- 
+  // ── Pick image ───────────────────────────────────────────────────
+  // ✅ Fonctionne sur Android ET Web
   Future<void> _pickImageFromSource(ImageSource source) async {
     Navigator.pop(context); // ferme le bottom sheet
     final XFile? image = await _picker.pickImage(source: source);
@@ -149,7 +150,7 @@ class _EditOfferPageState extends State<EditOfferPage> {
         ),
       ),
 
-      
+      // ── Bouton Save fixé en bas ──────────────────────────────────
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         child: Container(
@@ -185,7 +186,7 @@ class _EditOfferPageState extends State<EditOfferPage> {
                   available: _quantity.toString(),
                   imageUrl: widget.initialImageUrl ?? '',
                   type: _selectedType ?? '',
-                 
+                  // ✅ Passer le XFile pour l'upload dans my_offers.dart
                   newImageFile: _pickedImage,
                 );
                 Navigator.pop(context, updatedOffer);
@@ -244,7 +245,7 @@ class _EditOfferPageState extends State<EditOfferPage> {
                           onTap: () => _pickImageFromSource(
                               ImageSource.gallery),
                         ),
-                       
+                        // ✅ Caméra uniquement sur mobile (pas sur Web)
                         if (!kIsWeb)
                           ListTile(
                             leading: Icon(Icons.camera_alt,
@@ -471,10 +472,12 @@ class _EditOfferPageState extends State<EditOfferPage> {
     );
   }
 
- 
+  // ── Aperçu de l'image ────────────────────────────────────────────
+  // ✅ Utilise Image.memory pour l'aperçu (fonctionne Android + Web)
+  // Ne jamais utiliser Image.file sur Web → crash
   Widget _buildImagePreview() {
     if (_newImagePreviewBytes != null) {
-      
+      // Nouvelle image sélectionnée : aperçu via bytes (Android + Web)
       return ClipRRect(
         borderRadius: BorderRadius.circular(10),
         child: Image.memory(
@@ -485,7 +488,7 @@ class _EditOfferPageState extends State<EditOfferPage> {
       );
     }
     if (widget.initialImageUrl != null && widget.initialImageUrl!.isNotEmpty) {
-   
+      // Image existante depuis le serveur
       return ClipRRect(
         borderRadius: BorderRadius.circular(10),
         child: Image.network(
@@ -496,7 +499,7 @@ class _EditOfferPageState extends State<EditOfferPage> {
         ),
       );
     }
-   
+    // Aucune image
     return _buildPhotoPlaceholder();
   }
 
